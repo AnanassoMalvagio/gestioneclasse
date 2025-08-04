@@ -38,6 +38,24 @@
             padding: 20px;
             background: #3498db;
             color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sidebar-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
         }
 
         .sidebar-header h2 {
@@ -517,6 +535,13 @@
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <img src="https://raw.githubusercontent.com/TUO-USERNAME/TUO-REPOSITORY/main/logo.png" 
+                         alt="MrALEmatici Logo" 
+                         style="width: 80px; height: 80px; border-radius: 50%; background: #2c3e50; padding: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);"
+                         title="MrALEmatici">
+                    <div style="color: #ff4444; font-weight: bold; margin-top: 5px; font-size: 14px; text-shadow: 0 0 10px rgba(255,68,68,0.5);">MrALEmatici</div>
+                </div>
                 <h2 id="className">Studenti Classe 3B</h2>
                 <button class="btn btn-secondary" onclick="editClassName()" style="margin-top: 10px; width: 100%; background: rgba(255,255,255,0.2); color: white; font-size: 12px;">
                     ✏️ Modifica Nome Classe
