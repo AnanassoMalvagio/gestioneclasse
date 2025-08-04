@@ -87,6 +87,57 @@
             border-color: #3498db;
         }
 
+        .student-card:hover .student-actions {
+            opacity: 1;
+        }
+
+        .student-actions {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 5px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .student-action-btn {
+            width: 28px;
+            height: 28px;
+            border: none;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .student-action-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .student-action-btn.edit {
+            color: #3498db;
+        }
+
+        .student-action-btn.edit:hover {
+            background: #3498db;
+            color: white;
+        }
+
+        .student-action-btn.delete {
+            color: #e74c3c;
+        }
+
+        .student-action-btn.delete:hover {
+            background: #e74c3c;
+            color: white;
+        }
+
         .student-card.dragging {
             opacity: 0.5;
             transform: scale(0.95);
@@ -654,10 +705,11 @@
     <div class="modal" id="studentModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Aggiungi Nuovo Studente</h3>
+                <h3 id="studentModalTitle">Aggiungi Nuovo Studente</h3>
                 <button class="close-btn" onclick="closeModal('studentModal')">×</button>
             </div>
-            <form onsubmit="addStudent(event)">
+            <form onsubmit="saveStudent(event)">
+                <input type="hidden" id="studentId" value="">
                 <div class="form-group">
                     <label>Nome e Cognome</label>
                     <input type="text" id="studentName" required>
@@ -684,7 +736,7 @@
                     </div>
                 </div>
                 <button type="submit" class="btn btn-primary" style="width: 100%;">
-                    Aggiungi Studente
+                    <span id="studentModalSubmitText">Aggiungi Studente</span>
                 </button>
             </form>
         </div>
@@ -1448,6 +1500,14 @@
                 ];
 
                 card.innerHTML = `
+                    <div class="student-actions">
+                        <button class="student-action-btn edit" onclick="editStudent('${student.id}')" title="Modifica">
+                            ✏️
+                        </button>
+                        <button class="student-action-btn delete" onclick="deleteStudent('${student.id}')" title="Elimina">
+                            🗑️
+                        </button>
+                    </div>
                     <div class="student-name">${student.name}</div>
                     <div class="student-tags">
                         ${allTags.map(tag => 
@@ -1473,6 +1533,12 @@
             draggedStudent = e.target;
             e.target.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
+            
+            // Prevent dragging if clicking on action buttons
+            if (e.target.closest('.student-actions')) {
+                e.preventDefault();
+                return false;
+            }
         }
 
         function handleDragEnd(e) {
@@ -1523,8 +1589,113 @@
         }
 
         // Modal Functions
-        function showStudentModal() {
-            document.getElementById('studentModal').classList.add('active');
+        function showStudentModal(editMode = false) {
+            const modal = document.getElementById('studentModal');
+            const title = document.getElementById('studentModalTitle');
+            const submitText = document.getElementById('studentModalSubmitText');
+            
+            if (!editMode) {
+                title.textContent = 'Aggiungi Nuovo Studente';
+                submitText.textContent = 'Aggiungi Studente';
+                document.getElementById('studentId').value = '';
+                document.getElementById('studentName').value = '';
+                document.getElementById('tagPersonalita').value = '';
+                document.getElementById('tagApprendimento').value = '';
+                document.getElementById('tagComportamento').value = '';
+            } else {
+                title.textContent = 'Modifica Studente';
+                submitText.textContent = 'Salva Modifiche';
+            }
+            
+            modal.classList.add('active');
+        }
+
+        // Edit Student
+        function editStudent(studentId) {
+            const student = students.find(s => s.id === studentId);
+            if (!student) return;
+            
+            showStudentModal(true);
+            
+            document.getElementById('studentId').value = student.id;
+            document.getElementById('studentName').value = student.name;
+            document.getElementById('tagPersonalita').value = student.tags.personalità.join(', ');
+            document.getElementById('tagApprendimento').value = student.tags.apprendimento.join(', ');
+            document.getElementById('tagComportamento').value = student.tags.comportamento.join(', ');
+        }
+
+        // Delete Student
+        function deleteStudent(studentId) {
+            const student = students.find(s => s.id === studentId);
+            if (!student) return;
+            
+            if (confirm(`Sei sicuro di voler eliminare ${student.name}?`)) {
+                // Remove from students array
+                students = students.filter(s => s.id !== studentId);
+                
+                // Remove from any desk
+                classroom.desks.forEach(desk => {
+                    if (desk.student === studentId) {
+                        desk.student = null;
+                        const deskElement = document.getElementById(`desk-${desk.row}-${desk.col}`);
+                        deskElement.classList.remove('occupied');
+                        deskElement.textContent = '';
+                        
+                        // Re-add properties
+                        const props = deskElement.querySelector('.desk-properties');
+                        if (props) {
+                            deskElement.innerHTML = '';
+                            deskElement.appendChild(props);
+                        }
+                    }
+                });
+                
+                renderStudentList();
+                updateStats();
+                saveToLocalStorage();
+                showToast(`${student.name} eliminato`, 'success');
+            }
+        }
+
+        // Save Student (Add or Edit)
+        function saveStudent(e) {
+            e.preventDefault();
+            
+            const studentId = document.getElementById('studentId').value;
+            const name = document.getElementById('studentName').value;
+            const personalita = document.getElementById('tagPersonalita').value.split(',').filter(t => t.trim());
+            const apprendimento = document.getElementById('tagApprendimento').value.split(',').filter(t => t.trim());
+            const comportamento = document.getElementById('tagComportamento').value.split(',').filter(t => t.trim());
+
+            const studentData = {
+                name: name,
+                tags: {
+                    personalità: personalita.map(t => t.trim()),
+                    apprendimento: apprendimento.map(t => t.trim()),
+                    comportamento: comportamento.map(t => t.trim())
+                }
+            };
+
+            if (studentId) {
+                // Edit existing student
+                const index = students.findIndex(s => s.id === studentId);
+                if (index !== -1) {
+                    students[index] = { ...students[index], ...studentData };
+                    showToast(`${name} modificato con successo`, 'success');
+                }
+            } else {
+                // Add new student
+                const newStudent = {
+                    id: 'std' + Date.now(),
+                    ...studentData
+                };
+                students.push(newStudent);
+                showToast(`${name} aggiunto con successo`, 'success');
+            }
+
+            renderStudentList();
+            closeModal('studentModal');
+            saveToLocalStorage();
         }
 
         function showRulesModal() {
