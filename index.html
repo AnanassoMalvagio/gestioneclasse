@@ -519,7 +519,44 @@
         .toast.error { background: #e74c3c; }
         .toast.show { display: block; }
 
-        .toast.info { background: #3498db; }
+        .history-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .history-item:hover {
+            background: #e3f2fd;
+            border-color: #3498db;
+            transform: translateX(5px);
+        }
+
+        .history-item.active {
+            background: #d1ecf1;
+            border-color: #0c5460;
+            border-width: 2px;
+        }
+
+        .history-date {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .history-info {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+
+        .history-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
     </style>
 </head>
 <body>
@@ -583,6 +620,9 @@
                     </button>
                     <button class="btn btn-success" onclick="generateSeating()">
                         🎲 Genera Disposizione
+                    </button>
+                    <button class="btn btn-secondary" onclick="showHistoryModal()">
+                        📅 Storico
                     </button>
                 </div>
                 <div>
@@ -739,6 +779,27 @@
         </div>
     </div>
 
+    <!-- History Modal -->
+    <div class="modal" id="historyModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Storico Disposizioni</h3>
+                <button class="close-btn" onclick="closeModal('historyModal')">×</button>
+            </div>
+            <div class="history-section" style="max-height: 400px; overflow-y: auto;">
+                <div id="historyList">
+                    <!-- History items will be displayed here -->
+                </div>
+            </div>
+            <div style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px;">
+                <p style="margin: 0; color: #1976d2; font-size: 14px;">
+                    💡 <strong>Suggerimento:</strong> L'app salva automaticamente ogni disposizione generata. 
+                    Puoi caricare una disposizione precedente o salvarla su file per conservarla permanentemente.
+                </p>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
 
@@ -751,6 +812,8 @@
             cols: 6,
             desks: []
         };
+        let seatingHistory = [];
+        let currentSeatingIndex = -1;
         let rules = {
             mandatory: [],
             preferential: [
@@ -972,11 +1035,198 @@
             showToast('Configurazione regole salvata!', 'success');
         }
 
-        // Initialize App
+        // Initialize App with saved data
         function initApp() {
+            // Load saved data from localStorage
+            loadFromLocalStorage();
+            
             createClassroomGrid();
-            loadSampleStudents();
+            
+            // If no students loaded from storage, load sample
+            if (students.length === 0) {
+                loadSampleStudents();
+            } else {
+                renderStudentList();
+                // Restore last seating if available
+                if (seatingHistory.length > 0 && currentSeatingIndex >= 0) {
+                    restoreSeating(seatingHistory[currentSeatingIndex]);
+                }
+            }
+            
             updateStats();
+        }
+
+        // Save to localStorage
+        function saveToLocalStorage() {
+            const appData = {
+                className: currentClassName,
+                students: students,
+                classroom: classroom,
+                rules: rules,
+                seatingHistory: seatingHistory,
+                currentSeatingIndex: currentSeatingIndex,
+                lastUpdated: new Date().toISOString()
+            };
+            
+            localStorage.setItem('classroomSeatingApp', JSON.stringify(appData));
+        }
+
+        // Load from localStorage
+        function loadFromLocalStorage() {
+            const savedData = localStorage.getItem('classroomSeatingApp');
+            if (savedData) {
+                try {
+                    const appData = JSON.parse(savedData);
+                    
+                    // Restore data
+                    currentClassName = appData.className || 'Classe 3B';
+                    students = appData.students || [];
+                    classroom = appData.classroom || {rows: 5, cols: 6, desks: []};
+                    rules = appData.rules || rules;
+                    seatingHistory = appData.seatingHistory || [];
+                    currentSeatingIndex = appData.currentSeatingIndex || -1;
+                    
+                    // Update UI
+                    document.getElementById('className').textContent = `Studenti ${currentClassName}`;
+                    
+                    showToast('Dati caricati dall\'ultima sessione', 'success');
+                } catch (error) {
+                    console.error('Error loading saved data:', error);
+                }
+            }
+        }
+
+        // Save current seating to history
+        function saveSeatingToHistory() {
+            const currentSeating = {
+                id: Date.now(),
+                date: new Date().toISOString(),
+                seating: classroom.desks.map(d => ({
+                    row: d.row,
+                    col: d.col,
+                    studentId: d.student
+                })),
+                studentCount: students.filter(s => 
+                    classroom.desks.some(d => d.student === s.id)
+                ).length
+            };
+            
+            seatingHistory.push(currentSeating);
+            currentSeatingIndex = seatingHistory.length - 1;
+            
+            // Keep only last 10 dispositions
+            if (seatingHistory.length > 10) {
+                seatingHistory = seatingHistory.slice(-10);
+                currentSeatingIndex = seatingHistory.length - 1;
+            }
+            
+            saveToLocalStorage();
+        }
+
+        // Show history modal
+        function showHistoryModal() {
+            document.getElementById('historyModal').classList.add('active');
+            renderHistoryList();
+        }
+
+        // Render history list
+        function renderHistoryList() {
+            const historyList = document.getElementById('historyList');
+            
+            if (seatingHistory.length === 0) {
+                historyList.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #7f8c8d;">
+                        <p>Nessuna disposizione salvata</p>
+                        <p style="font-size: 14px;">Genera una disposizione per iniziare lo storico</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            historyList.innerHTML = '';
+            
+            seatingHistory.slice().reverse().forEach((item, reverseIndex) => {
+                const index = seatingHistory.length - 1 - reverseIndex;
+                const date = new Date(item.date);
+                const isActive = index === currentSeatingIndex;
+                
+                const historyItem = document.createElement('div');
+                historyItem.className = `history-item ${isActive ? 'active' : ''}`;
+                historyItem.innerHTML = `
+                    <div class="history-date">
+                        ${date.toLocaleDateString('it-IT')} - ${date.toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'})}
+                        ${isActive ? '<span style="float: right; color: #27ae60;">✓ Attiva</span>' : ''}
+                    </div>
+                    <div class="history-info">
+                        ${item.studentCount} studenti posizionati
+                    </div>
+                    <div class="history-actions">
+                        <button class="btn btn-primary" onclick="loadSeatingFromHistory(${index})" style="padding: 6px 12px; font-size: 12px;">
+                            📥 Carica
+                        </button>
+                        <button class="btn btn-secondary" onclick="deleteFromHistory(${index})" style="padding: 6px 12px; font-size: 12px;">
+                            🗑️ Elimina
+                        </button>
+                    </div>
+                `;
+                
+                historyList.appendChild(historyItem);
+            });
+        }
+
+        // Load seating from history
+        function loadSeatingFromHistory(index) {
+            if (index >= 0 && index < seatingHistory.length) {
+                const historicSeating = seatingHistory[index];
+                restoreSeating(historicSeating);
+                currentSeatingIndex = index;
+                
+                closeModal('historyModal');
+                showToast('Disposizione caricata dallo storico', 'success');
+                saveToLocalStorage();
+            }
+        }
+
+        // Restore seating arrangement
+        function restoreSeating(seatingData) {
+            // Clear current seating
+            resetSeating(false); // Don't show toast
+            
+            // Restore each student position
+            seatingData.seating.forEach(seat => {
+                if (seat.studentId) {
+                    const desk = classroom.desks.find(d => 
+                        d.row === seat.row && d.col === seat.col
+                    );
+                    const student = students.find(s => s.id === seat.studentId);
+                    
+                    if (desk && student) {
+                        assignStudentToDesk(student, desk);
+                    }
+                }
+            });
+            
+            updateStats();
+        }
+
+        // Delete from history
+        function deleteFromHistory(index) {
+            if (confirm('Eliminare questa disposizione dallo storico?')) {
+                seatingHistory.splice(index, 1);
+                
+                // Adjust current index if needed
+                if (currentSeatingIndex >= index) {
+                    currentSeatingIndex = Math.max(0, currentSeatingIndex - 1);
+                }
+                
+                if (seatingHistory.length === 0) {
+                    currentSeatingIndex = -1;
+                }
+                
+                saveToLocalStorage();
+                renderHistoryList();
+                showToast('Disposizione eliminata dallo storico', 'success');
+            }
         }
 
         // Create Classroom Grid
@@ -1264,6 +1514,9 @@
             document.getElementById('tagPersonalita').value = '';
             document.getElementById('tagApprendimento').value = '';
             document.getElementById('tagComportamento').value = '';
+            
+            // Save to localStorage
+            saveToLocalStorage();
         }
 
         // Generate Intelligent Seating
@@ -1271,7 +1524,7 @@
             showToast('Generazione disposizione intelligente...', 'success');
             
             // Reset current seating
-            resetSeating();
+            resetSeating(false);
 
             // Create a copy of students to shuffle
             let availableStudents = [...students];
@@ -1335,7 +1588,10 @@
                 }
             });
 
-            showToast('Disposizione generata con successo!', 'success');
+            // Save to history
+            saveSeatingToHistory();
+            
+            showToast('Disposizione generata e salvata nello storico!', 'success');
             updateStats();
         }
 
@@ -1411,7 +1667,7 @@
         }
 
         // Reset Seating
-        function resetSeating() {
+        function resetSeating(showToastMessage = true) {
             classroom.desks.forEach(desk => {
                 desk.student = null;
                 const deskElement = document.getElementById(`desk-${desk.row}-${desk.col}`);
@@ -1426,7 +1682,9 @@
                 }
             });
             updateStats();
-            showToast('Disposizione resettata', 'success');
+            if (showToastMessage) {
+                showToast('Disposizione resettata', 'success');
+            }
         }
 
         // Edit Class Name
