@@ -753,11 +753,14 @@
                 </div>
                 <div class="form-group">
                     <label>Disposizione Banchi</label>
-                    <select id="deskArrangement" style="width: 100%;">
+                    <select id="deskArrangement" onchange="updateArrangementPreview()" style="width: 100%;">
                         <option value="grid">Griglia Tradizionale</option>
-                        <option value="horseshoe">Ferro di Cavallo (prossimamente)</option>
-                        <option value="groups">Isole di Lavoro (prossimamente)</option>
+                        <option value="horseshoe">Ferro di Cavallo</option>
+                        <option value="groups">Isole di Lavoro (4 studenti)</option>
                     </select>
+                    <div id="arrangementPreview" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px; text-align: center; font-size: 12px; color: #7f8c8d;">
+                        Disposizione classica in file e colonne
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Nome della Classe</label>
@@ -810,7 +813,8 @@
         let classroom = {
             rows: 5,
             cols: 6,
-            desks: []
+            desks: [],
+            arrangement: 'grid'
         };
         let seatingHistory = [];
         let currentSeatingIndex = -1;
@@ -1229,46 +1233,160 @@
             }
         }
 
-        // Create Classroom Grid
+        // Update arrangement preview
+        function updateArrangementPreview() {
+            const arrangement = document.getElementById('deskArrangement').value;
+            const preview = document.getElementById('arrangementPreview');
+            
+            switch(arrangement) {
+                case 'grid':
+                    preview.textContent = 'Disposizione classica in file e colonne';
+                    break;
+                case 'horseshoe':
+                    preview.textContent = 'Banchi disposti a U per favorire la discussione';
+                    break;
+                case 'groups':
+                    preview.textContent = 'Isole da 4 studenti per lavori di gruppo';
+                    break;
+            }
+        }
+
+        // Create Classroom Grid based on arrangement type
         function createClassroomGrid() {
             const grid = document.getElementById('classroomGrid');
-            grid.style.gridTemplateColumns = `repeat(${classroom.cols}, 1fr)`;
             grid.innerHTML = '';
+            classroom.desks = [];
+            
+            const arrangement = classroom.arrangement || 'grid';
+            
+            switch(arrangement) {
+                case 'horseshoe':
+                    createHorseshoeArrangement(grid);
+                    break;
+                case 'groups':
+                    createGroupsArrangement(grid);
+                    break;
+                default:
+                    createTraditionalGrid(grid);
+            }
+            
+            updateStats();
+        }
 
+        // Traditional Grid Layout
+        function createTraditionalGrid(grid) {
+            grid.style.gridTemplateColumns = `repeat(${classroom.cols}, 1fr)`;
+            grid.style.gap = '15px';
+            
             for (let row = 0; row < classroom.rows; row++) {
                 for (let col = 0; col < classroom.cols; col++) {
-                    const desk = document.createElement('div');
-                    desk.className = 'desk';
-                    desk.dataset.row = row;
-                    desk.dataset.col = col;
-                    desk.id = `desk-${row}-${col}`;
-                    
-                    // Add properties based on position
-                    const props = document.createElement('div');
-                    props.className = 'desk-properties';
-                    
-                    if (row === 0) {
-                        props.innerHTML += '<div class="desk-prop board" title="Vicino alla lavagna"></div>';
-                    }
-                    if (col === 0) {
-                        props.innerHTML += '<div class="desk-prop door" title="Vicino alla porta"></div>';
-                    }
-                    if (col === classroom.cols - 1) {
-                        props.innerHTML += '<div class="desk-prop window" title="Vicino alla finestra"></div>';
-                    }
-                    
-                    if (props.innerHTML) desk.appendChild(props);
-                    
-                    // Drag and Drop Events
-                    desk.addEventListener('dragover', handleDragOver);
-                    desk.addEventListener('drop', handleDrop);
-                    desk.addEventListener('dragleave', handleDragLeave);
-                    desk.addEventListener('click', () => showDeskInfo(row, col));
-                    
+                    const desk = createDesk(row, col);
                     grid.appendChild(desk);
                     classroom.desks.push({row, col, student: null});
                 }
             }
+        }
+
+        // Horseshoe (U-shape) Layout
+        function createHorseshoeArrangement(grid) {
+            grid.style.display = 'grid';
+            grid.style.gridTemplateColumns = `repeat(${classroom.cols}, 1fr)`;
+            grid.style.gridTemplateRows = `repeat(${classroom.rows}, 1fr)`;
+            grid.style.gap = '15px';
+            
+            for (let row = 0; row < classroom.rows; row++) {
+                for (let col = 0; col < classroom.cols; col++) {
+                    // Create desk only on perimeter for horseshoe
+                    if (row === 0 || // First row
+                        row === classroom.rows - 1 || // Last row
+                        col === 0 || // First column
+                        col === classroom.cols - 1 || // Last column
+                        (row > 0 && row < classroom.rows - 1 && (col === 1 || col === classroom.cols - 2))) { // Inner U shape
+                        
+                        const desk = createDesk(row, col);
+                        desk.style.gridRow = row + 1;
+                        desk.style.gridColumn = col + 1;
+                        grid.appendChild(desk);
+                        classroom.desks.push({row, col, student: null});
+                    } else {
+                        // Empty space in the middle
+                        const empty = document.createElement('div');
+                        empty.style.gridRow = row + 1;
+                        empty.style.gridColumn = col + 1;
+                        grid.appendChild(empty);
+                    }
+                }
+            }
+        }
+
+        // Groups Layout (Islands of 4)
+        function createGroupsArrangement(grid) {
+            grid.style.display = 'grid';
+            grid.style.gridTemplateColumns = 'repeat(3, auto)';
+            grid.style.gap = '40px';
+            grid.style.justifyContent = 'center';
+            
+            const groupsPerRow = 3;
+            const groupRows = 2;
+            let deskId = 0;
+            
+            for (let groupRow = 0; groupRow < groupRows; groupRow++) {
+                for (let groupCol = 0; groupCol < groupsPerRow; groupCol++) {
+                    // Create a group container
+                    const groupContainer = document.createElement('div');
+                    groupContainer.style.display = 'grid';
+                    groupContainer.style.gridTemplateColumns = 'repeat(2, 1fr)';
+                    groupContainer.style.gap = '10px';
+                    groupContainer.style.padding = '10px';
+                    groupContainer.style.background = 'rgba(52, 152, 219, 0.05)';
+                    groupContainer.style.borderRadius = '12px';
+                    
+                    // Add 4 desks per group
+                    for (let i = 0; i < 4; i++) {
+                        const row = groupRow * 2 + Math.floor(i / 2);
+                        const col = groupCol * 2 + (i % 2);
+                        const desk = createDesk(row, col);
+                        groupContainer.appendChild(desk);
+                        classroom.desks.push({row, col, student: null, group: groupRow * groupsPerRow + groupCol});
+                        deskId++;
+                    }
+                    
+                    grid.appendChild(groupContainer);
+                }
+            }
+        }
+
+        // Create individual desk element
+        function createDesk(row, col) {
+            const desk = document.createElement('div');
+            desk.className = 'desk';
+            desk.dataset.row = row;
+            desk.dataset.col = col;
+            desk.id = `desk-${row}-${col}`;
+            
+            // Add properties based on position
+            const props = document.createElement('div');
+            props.className = 'desk-properties';
+            
+            if (row === 0) {
+                props.innerHTML += '<div class="desk-prop board" title="Vicino alla lavagna"></div>';
+            }
+            if (col === 0) {
+                props.innerHTML += '<div class="desk-prop door" title="Vicino alla porta"></div>';
+            }
+            if (col === classroom.cols - 1) {
+                props.innerHTML += '<div class="desk-prop window" title="Vicino alla finestra"></div>';
+            }
+            
+            if (props.innerHTML) desk.appendChild(props);
+            
+            // Drag and Drop Events
+            desk.addEventListener('dragover', handleDragOver);
+            desk.addEventListener('drop', handleDrop);
+            desk.addEventListener('dragleave', handleDragLeave);
+            desk.addEventListener('click', () => showDeskInfo(row, col));
+            
+            return desk;
         }
 
         // Load Sample Students
@@ -1446,6 +1564,7 @@
             const newRows = parseInt(document.getElementById('classRows').value);
             const newCols = parseInt(document.getElementById('classCols').value);
             const newClassName = document.getElementById('classNameInput').value.trim();
+            const newArrangement = document.getElementById('deskArrangement').value;
             
             // Update class name if provided
             if (newClassName) {
@@ -1461,21 +1580,23 @@
                 }
             });
             
-            // Update classroom dimensions
+            // Update classroom dimensions and arrangement
             classroom.rows = newRows;
             classroom.cols = newCols;
+            classroom.arrangement = newArrangement;
             classroom.desks = [];
             
-            // Recreate grid
+            // Recreate grid with new arrangement
             createClassroomGrid();
             
             // Try to restore students to similar positions
             Object.entries(currentSeating).forEach(([studentId, pos]) => {
-                // If the old position is still valid, use it
-                if (pos.row < newRows && pos.col < newCols) {
-                    const desk = classroom.desks.find(d => d.row === pos.row && d.col === pos.col);
+                // Find a suitable desk in the new arrangement
+                const desk = classroom.desks.find(d => !d.student && 
+                    (d.row === pos.row && d.col === pos.col || !d.student));
+                if (desk) {
                     const student = students.find(s => s.id === studentId);
-                    if (desk && student) {
+                    if (student) {
                         assignStudentToDesk(student, desk);
                     }
                 }
@@ -1483,7 +1604,15 @@
             
             updateStats();
             closeModal('classroomModal');
-            showToast(`Configurazione aggiornata: ${currentClassName} - ${newRows}×${newCols} posti`, 'success');
+            
+            const arrangementName = {
+                'grid': 'Griglia',
+                'horseshoe': 'Ferro di cavallo',
+                'groups': 'Isole di lavoro'
+            }[newArrangement];
+            
+            showToast(`Configurazione aggiornata: ${currentClassName} - ${arrangementName}`, 'success');
+            saveToLocalStorage();
         }
 
         function addStudent(e) {
