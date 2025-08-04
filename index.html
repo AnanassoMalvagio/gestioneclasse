@@ -519,16 +519,7 @@
         .toast.error { background: #e74c3c; }
         .toast.show { display: block; }
 
-        @keyframes slideUp {
-            from {
-                transform: translateY(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
+        .toast.info { background: #3498db; }
     </style>
 </head>
 <body>
@@ -541,7 +532,7 @@
                          alt="MALEmatica Logo" 
                          style="width: 80px; height: 80px; border-radius: 50%; background: #2c3e50; padding: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);"
                          title="MALEmatica">
-                    <div style="color: #ff4444; font-weight: bold; margin-top: 5px; font-size: 14px; text-shadow: 0 0 10px rgba(255,68,68,0.5);">MrALEmatici</div>
+                    <div style="color: #ff4444; font-weight: bold; margin-top: 5px; font-size: 14px; text-shadow: 0 0 10px rgba(255,68,68,0.5);">MALEmatica</div>
                 </div>
                 <h2 id="className">Studenti Classe 3B</h2>
                 <button class="btn btn-secondary" onclick="editClassName()" style="margin-top: 10px; width: 100%; background: rgba(255,255,255,0.2); color: white; font-size: 12px;">
@@ -668,25 +659,32 @@
             </div>
             <div class="rules-section">
                 <h4 style="margin-bottom: 15px;">Regole Attive</h4>
-                <div class="rule-item">
-                    <span class="rule-type">AVVICINA</span>
-                    <span>Studenti leader_positivo vicino a studenti timidi</span>
+                <div id="rulesList">
+                    <!-- Rules will be dynamically generated here -->
                 </div>
-                <div class="rule-item">
-                    <span class="rule-type">SEPARA</span>
-                    <span>Studenti chiacchieroni distanti tra loro</span>
-                </div>
-                <div class="rule-item">
-                    <span class="rule-type">POSIZIONA</span>
-                    <span>Studenti con DSA/BES nelle prime file</span>
-                </div>
-                <div class="rule-item">
-                    <span class="rule-type">DISTRIBUISCI</span>
-                    <span>Alternanza maschi/femmine quando possibile</span>
+                <button class="btn btn-primary" onclick="addNewRule()" style="margin-top: 15px;">
+                    + Aggiungi Nuova Regola
+                </button>
+            </div>
+            
+            <div class="form-group" id="newRuleForm" style="display: none; margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px;">
+                <h5 style="margin-bottom: 10px;">Nuova Regola</h5>
+                <select id="ruleType" onchange="updateRuleForm()" style="width: 100%; margin-bottom: 10px;">
+                    <option value="">Seleziona tipo di regola...</option>
+                    <option value="AVVICINA">AVVICINA - Metti vicini studenti con certi tag</option>
+                    <option value="SEPARA">SEPARA - Tieni lontani studenti con certi tag</option>
+                    <option value="POSIZIONA">POSIZIONA - Metti studenti in zone specifiche</option>
+                    <option value="DISTRIBUISCI">DISTRIBUISCI - Spargi uniformemente</option>
+                </select>
+                <div id="ruleDetails" style="margin-top: 10px;"></div>
+                <div style="margin-top: 10px; display: flex; gap: 10px;">
+                    <button class="btn btn-success" onclick="saveNewRule()">Salva Regola</button>
+                    <button class="btn btn-secondary" onclick="cancelNewRule()">Annulla</button>
                 </div>
             </div>
-            <button class="btn btn-primary" style="width: 100%; margin-top: 20px;">
-                Salva Configurazione
+            
+            <button class="btn btn-primary" onclick="saveRulesConfiguration()" style="width: 100%; margin-top: 20px;">
+                💾 Salva Configurazione Regole
             </button>
         </div>
     </div>
@@ -756,12 +754,223 @@
         let rules = {
             mandatory: [],
             preferential: [
-                {type: 'AVVICINA', tag1: 'leader_positivo', tag2: 'timido', weight: 0.8},
-                {type: 'SEPARA', tag: 'chiacchierone', minDistance: 2, weight: 0.9},
-                {type: 'POSIZIONA', tags: ['DSA', 'BES'], zone: 'prima_fila', weight: 1.0},
-                {type: 'DISTRIBUISCI', attribute: 'genere', weight: 0.6}
+                {
+                    id: 'rule1',
+                    type: 'AVVICINA', 
+                    tag1: 'leader_positivo', 
+                    tag2: 'timido', 
+                    weight: 0.8,
+                    description: 'Studenti leader_positivo vicino a studenti timidi'
+                },
+                {
+                    id: 'rule2',
+                    type: 'SEPARA', 
+                    tag: 'chiacchierone', 
+                    minDistance: 2, 
+                    weight: 0.9,
+                    description: 'Studenti chiacchieroni distanti tra loro'
+                },
+                {
+                    id: 'rule3',
+                    type: 'POSIZIONA', 
+                    tags: ['DSA', 'BES'], 
+                    zone: 'prima_fila', 
+                    weight: 1.0,
+                    description: 'Studenti con DSA/BES nelle prime file'
+                },
+                {
+                    id: 'rule4',
+                    type: 'DISTRIBUISCI', 
+                    attribute: 'genere', 
+                    weight: 0.6,
+                    description: 'Alternanza maschi/femmine quando possibile'
+                }
             ]
         };
+
+        // Rules Management Functions
+        function showRulesModal() {
+            document.getElementById('rulesModal').classList.add('active');
+            renderRulesList();
+        }
+
+        function renderRulesList() {
+            const rulesList = document.getElementById('rulesList');
+            rulesList.innerHTML = '';
+            
+            rules.preferential.forEach(rule => {
+                const ruleItem = document.createElement('div');
+                ruleItem.className = 'rule-item';
+                ruleItem.innerHTML = `
+                    <span class="rule-type">${rule.type}</span>
+                    <span style="flex: 1;">${rule.description}</span>
+                    <button class="btn btn-secondary" onclick="editRule('${rule.id}')" style="padding: 4px 8px; font-size: 12px;">
+                        ✏️
+                    </button>
+                    <button class="btn btn-secondary" onclick="deleteRule('${rule.id}')" style="padding: 4px 8px; font-size: 12px; background: #e74c3c;">
+                        🗑️
+                    </button>
+                `;
+                rulesList.appendChild(ruleItem);
+            });
+        }
+
+        function addNewRule() {
+            document.getElementById('newRuleForm').style.display = 'block';
+            document.getElementById('ruleType').value = '';
+            document.getElementById('ruleDetails').innerHTML = '';
+        }
+
+        function cancelNewRule() {
+            document.getElementById('newRuleForm').style.display = 'none';
+        }
+
+        function updateRuleForm() {
+            const ruleType = document.getElementById('ruleType').value;
+            const detailsDiv = document.getElementById('ruleDetails');
+            
+            switch(ruleType) {
+                case 'AVVICINA':
+                    detailsDiv.innerHTML = `
+                        <label>Tag studenti da avvicinare a:</label>
+                        <input type="text" id="tag1" placeholder="es. leader_positivo" style="width: 100%; margin-bottom: 10px;">
+                        <label>Tag studenti da supportare:</label>
+                        <input type="text" id="tag2" placeholder="es. timido" style="width: 100%;">
+                    `;
+                    break;
+                case 'SEPARA':
+                    detailsDiv.innerHTML = `
+                        <label>Tag studenti da tenere separati:</label>
+                        <input type="text" id="tagSepara" placeholder="es. chiacchierone" style="width: 100%; margin-bottom: 10px;">
+                        <label>Distanza minima (banchi):</label>
+                        <input type="number" id="minDistance" value="2" min="1" max="5" style="width: 100%;">
+                    `;
+                    break;
+                case 'POSIZIONA':
+                    detailsDiv.innerHTML = `
+                        <label>Tag studenti (separati da virgola):</label>
+                        <input type="text" id="tagsPosiziona" placeholder="es. DSA, BES" style="width: 100%; margin-bottom: 10px;">
+                        <label>Zona preferenziale:</label>
+                        <select id="zone" style="width: 100%;">
+                            <option value="prima_fila">Prima fila</option>
+                            <option value="ultima_fila">Ultima fila</option>
+                            <option value="centro">Centro aula</option>
+                            <option value="vicino_porta">Vicino alla porta</option>
+                            <option value="vicino_finestra">Vicino alla finestra</option>
+                        </select>
+                    `;
+                    break;
+                case 'DISTRIBUISCI':
+                    detailsDiv.innerHTML = `
+                        <label>Distribuisci in base a:</label>
+                        <select id="attribute" style="width: 100%;">
+                            <option value="tag">Tag specifico</option>
+                            <option value="genere">Genere (M/F)</option>
+                            <option value="random">Casuale</option>
+                        </select>
+                        <input type="text" id="tagDistribuisci" placeholder="Tag da distribuire (se selezionato)" style="width: 100%; margin-top: 10px; display: none;">
+                    `;
+                    // Add event listener for attribute change
+                    setTimeout(() => {
+                        document.getElementById('attribute').addEventListener('change', (e) => {
+                            const tagInput = document.getElementById('tagDistribuisci');
+                            tagInput.style.display = e.target.value === 'tag' ? 'block' : 'none';
+                        });
+                    }, 100);
+                    break;
+            }
+        }
+
+        function saveNewRule() {
+            const ruleType = document.getElementById('ruleType').value;
+            if (!ruleType) {
+                showToast('Seleziona un tipo di regola', 'error');
+                return;
+            }
+            
+            let newRule = {
+                id: 'rule' + Date.now(),
+                type: ruleType,
+                weight: 0.8
+            };
+            
+            switch(ruleType) {
+                case 'AVVICINA':
+                    const tag1 = document.getElementById('tag1').value.trim();
+                    const tag2 = document.getElementById('tag2').value.trim();
+                    if (!tag1 || !tag2) {
+                        showToast('Inserisci entrambi i tag', 'error');
+                        return;
+                    }
+                    newRule.tag1 = tag1;
+                    newRule.tag2 = tag2;
+                    newRule.description = `Studenti ${tag1} vicino a studenti ${tag2}`;
+                    break;
+                    
+                case 'SEPARA':
+                    const tagSepara = document.getElementById('tagSepara').value.trim();
+                    const minDistance = parseInt(document.getElementById('minDistance').value);
+                    if (!tagSepara) {
+                        showToast('Inserisci il tag', 'error');
+                        return;
+                    }
+                    newRule.tag = tagSepara;
+                    newRule.minDistance = minDistance;
+                    newRule.description = `Studenti ${tagSepara} distanti tra loro (min ${minDistance} banchi)`;
+                    break;
+                    
+                case 'POSIZIONA':
+                    const tagsPosiziona = document.getElementById('tagsPosiziona').value.split(',').map(t => t.trim()).filter(t => t);
+                    const zone = document.getElementById('zone').value;
+                    if (tagsPosiziona.length === 0) {
+                        showToast('Inserisci almeno un tag', 'error');
+                        return;
+                    }
+                    newRule.tags = tagsPosiziona;
+                    newRule.zone = zone;
+                    newRule.description = `Studenti con ${tagsPosiziona.join(', ')} in ${zone.replace('_', ' ')}`;
+                    break;
+                    
+                case 'DISTRIBUISCI':
+                    const attribute = document.getElementById('attribute').value;
+                    newRule.attribute = attribute;
+                    if (attribute === 'tag') {
+                        const tagDist = document.getElementById('tagDistribuisci').value.trim();
+                        if (!tagDist) {
+                            showToast('Inserisci il tag da distribuire', 'error');
+                            return;
+                        }
+                        newRule.tag = tagDist;
+                        newRule.description = `Distribuisci uniformemente studenti con tag ${tagDist}`;
+                    } else {
+                        newRule.description = `Distribuisci per ${attribute}`;
+                    }
+                    break;
+            }
+            
+            rules.preferential.push(newRule);
+            renderRulesList();
+            cancelNewRule();
+            showToast('Regola aggiunta con successo!', 'success');
+        }
+
+        function deleteRule(ruleId) {
+            if (confirm('Sei sicuro di voler eliminare questa regola?')) {
+                rules.preferential = rules.preferential.filter(r => r.id !== ruleId);
+                renderRulesList();
+                showToast('Regola eliminata', 'success');
+            }
+        }
+
+        function editRule(ruleId) {
+            // Per ora solo elimina, ma si potrebbe implementare la modifica
+            showToast('Usa Elimina e ricrea la regola per modificarla', 'info');
+        }
+
+        function saveRulesConfiguration() {
+            closeModal('rulesModal');
+            showToast('Configurazione regole salvata!', 'success');
+        }
 
         // Initialize App
         function initApp() {
