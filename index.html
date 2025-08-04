@@ -288,6 +288,16 @@
         .desk.occupied {
             background: #e3f2fd;
             border-color: #2196f3;
+            cursor: move;
+        }
+        
+        .desk.occupied:hover {
+            background: #bbdefb;
+        }
+        
+        .desk.occupied.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
         }
 
         .desk.drag-over {
@@ -894,10 +904,10 @@
             <div class="sidebar-header">
                 <div style="text-align: center; margin-bottom: 15px;">
                     <img src="https://raw.githubusercontent.com/AnanassoMalvagio/gestioneclasse/main/logo.png" 
-                         alt="MALEmatica Logo" 
+                         alt="MrALEmatici Logo" 
                          style="width: 80px; height: 80px; border-radius: 50%; background: #2c3e50; padding: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);"
-                         title="MALEmatica">
-                    <div style="color: #ff4444; font-weight: bold; margin-top: 5px; font-size: 14px; text-shadow: 0 0 10px rgba(255,68,68,0.5);">MALEmatica</div>
+                         title="MrALEmatici">
+                    <div style="color: #ff4444; font-weight: bold; margin-top: 5px; font-size: 14px; text-shadow: 0 0 10px rgba(255,68,68,0.5);">MrALEmatici</div>
                 </div>
                 <h2 id="className">Studenti Classe 3B</h2>
                 <button class="btn btn-secondary" onclick="editClassName()" style="margin-top: 10px; width: 100%; background: rgba(255,255,255,0.2); color: white; font-size: 12px;">
@@ -1727,7 +1737,12 @@
             
             if (props.innerHTML) desk.appendChild(props);
             
+            // Make desks draggable when occupied
+            desk.draggable = false; // Will be set to true when occupied
+            
             // Drag and Drop Events
+            desk.addEventListener('dragstart', handleDragStart);
+            desk.addEventListener('dragend', handleDragEnd);
             desk.addEventListener('dragover', handleDragOver);
             desk.addEventListener('drop', handleDrop);
             desk.addEventListener('dragleave', handleDragLeave);
@@ -1823,21 +1838,41 @@
 
         // Drag and Drop Handlers
         let draggedStudent = null;
+        let draggedFromDesk = null;
 
         function handleDragStart(e) {
-            draggedStudent = e.target;
-            e.target.classList.add('dragging');
-            e.dataTransfer.effectAllowed = 'move';
+            // Check if dragging from student list or from a desk
+            if (e.target.classList.contains('student-card')) {
+                draggedStudent = e.target;
+                draggedFromDesk = null;
+            } else if (e.target.classList.contains('desk') && e.target.classList.contains('occupied')) {
+                const studentId = classroom.desks.find(d => 
+                    d.row === parseInt(e.target.dataset.row) && 
+                    d.col === parseInt(e.target.dataset.col)
+                )?.student;
+                
+                if (studentId) {
+                    draggedStudent = document.querySelector(`[data-student-id="${studentId}"]`);
+                    draggedFromDesk = e.target;
+                }
+            }
             
-            // Prevent dragging if clicking on action buttons
-            if (e.target.closest('.student-actions')) {
-                e.preventDefault();
-                return false;
+            if (draggedStudent) {
+                e.target.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                
+                // Prevent dragging if clicking on action buttons
+                if (e.target.closest('.student-actions')) {
+                    e.preventDefault();
+                    return false;
+                }
             }
         }
 
         function handleDragEnd(e) {
             e.target.classList.remove('dragging');
+            draggedStudent = null;
+            draggedFromDesk = null;
         }
 
         function handleDragOver(e) {
@@ -1862,6 +1897,10 @@
             const student = students.find(s => s.id === studentId);
 
             if (student) {
+                // Check if target desk is already occupied
+                const targetDeskData = classroom.desks.find(d => d.row === row && d.col === col);
+                const previousOccupant = targetDeskData.student;
+
                 // Remove student from any previous desk
                 classroom.desks.forEach(d => {
                     if (d.student === studentId) {
@@ -1869,17 +1908,39 @@
                         oldDesk.classList.remove('occupied');
                         oldDesk.textContent = '';
                         d.student = null;
+                        
+                        // Re-add properties
+                        const props = oldDesk.querySelector('.desk-properties');
+                        if (props) {
+                            oldDesk.innerHTML = '';
+                            oldDesk.appendChild(props);
+                        }
                     }
                 });
 
+                // If dragging from a desk to another occupied desk, swap students
+                if (draggedFromDesk && previousOccupant) {
+                    const fromRow = parseInt(draggedFromDesk.dataset.row);
+                    const fromCol = parseInt(draggedFromDesk.dataset.col);
+                    const fromDesk = classroom.desks.find(d => d.row === fromRow && d.col === fromCol);
+                    
+                    // Place previous occupant in the source desk
+                    const previousStudent = students.find(s => s.id === previousOccupant);
+                    if (previousStudent && fromDesk) {
+                        fromDesk.student = previousOccupant;
+                        draggedFromDesk.classList.add('occupied');
+                        draggedFromDesk.textContent = previousStudent.name.split(' ')[0];
+                    }
+                }
+
                 // Assign to new desk
-                const deskData = classroom.desks.find(d => d.row === row && d.col === col);
-                deskData.student = studentId;
+                targetDeskData.student = studentId;
                 desk.classList.add('occupied');
                 desk.textContent = student.name.split(' ')[0];
 
-                showToast(`${student.name} assegnato al posto`, 'success');
+                showToast(`${student.name} spostato`, 'success');
                 updateStats();
+                saveToLocalStorage();
             }
         }
 
@@ -2259,6 +2320,7 @@
             const deskElement = document.getElementById(`desk-${desk.row}-${desk.col}`);
             deskElement.classList.add('occupied');
             deskElement.textContent = student.name.split(' ')[0];
+            deskElement.draggable = true; // Make the desk draggable
         }
 
         // Reset Seating
