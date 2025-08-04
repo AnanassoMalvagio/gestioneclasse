@@ -508,31 +508,296 @@
             color: #2c3e50;
         }
 
-        /* Responsive */
+        /* Mobile Responsive Styles */
         @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+
             .sidebar {
-                position: absolute;
-                z-index: 100;
-                height: 100%;
+                position: fixed;
+                top: 0;
+                left: 0;
+                z-index: 1000;
+                height: 100vh;
+                width: 85%;
+                max-width: 320px;
                 transform: translateX(-100%);
+                box-shadow: 2px 0 10px rgba(0,0,0,0.1);
             }
 
             .sidebar.open {
                 transform: translateX(0);
             }
 
-            .mobile-menu-btn {
+            .main-content {
+                width: 100%;
+                padding-top: 60px; /* Space for mobile header */
+            }
+
+            /* Mobile Header */
+            .mobile-header {
                 display: block;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 60px;
+                background: #3498db;
+                color: white;
+                padding: 0 15px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                z-index: 999;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            }
+
+            .mobile-menu-btn {
+                display: inline-flex !important;
+                background: transparent;
+                color: white;
+                border: 1px solid rgba(255,255,255,0.3);
+                padding: 8px 12px;
+            }
+
+            .mobile-title {
+                font-size: 18px;
+                font-weight: 600;
+                flex: 1;
+                text-align: center;
+                margin: 0 10px;
+            }
+
+            /* Toolbar adjustments */
+            .toolbar {
+                padding: 10px;
+                flex-direction: column;
+                gap: 10px;
+                position: sticky;
+                top: 60px;
+                z-index: 100;
+            }
+
+            .toolbar-left {
+                width: 100%;
+                justify-content: space-between;
+                flex-wrap: wrap;
+            }
+
+            .toolbar > div {
+                width: 100%;
+                display: flex;
+                gap: 5px;
+                justify-content: space-between;
+            }
+
+            .btn {
+                padding: 10px 12px;
+                font-size: 13px;
+                flex: 1;
+                min-width: 0;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            /* Classroom adjustments */
+            .classroom-container {
+                padding: 15px 10px;
+                overflow-x: auto;
+                overflow-y: visible;
+            }
+
+            .classroom-wrapper {
+                padding: 20px 15px;
+                min-width: 320px;
+                margin: 0 auto;
             }
 
             .classroom-grid {
-                gap: 10px;
+                gap: 8px !important;
+                transform: scale(0.85);
+                transform-origin: top center;
             }
 
             .desk {
-                width: 60px;
-                height: 50px;
-                font-size: 11px;
+                width: 50px;
+                height: 40px;
+                font-size: 10px;
+                padding: 2px;
+            }
+
+            .desk-properties {
+                top: -15px;
+            }
+
+            .desk-prop {
+                width: 4px;
+                height: 4px;
+            }
+
+            /* Modal adjustments */
+            .modal-content {
+                width: 95%;
+                max-width: none;
+                margin: 10px;
+                padding: 20px 15px;
+                max-height: 90vh;
+            }
+
+            .modal-header h3 {
+                font-size: 18px;
+            }
+
+            /* Student cards */
+            .student-card {
+                padding: 10px;
+                touch-action: none;
+            }
+
+            .student-name {
+                font-size: 14px;
+            }
+
+            .tag {
+                font-size: 10px;
+                padding: 2px 4px;
+            }
+
+            /* Stats panel */
+            .stats-panel {
+                padding: 10px;
+            }
+
+            .stat-item {
+                font-size: 12px;
+            }
+
+            /* Overlay for sidebar */
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 999;
+            }
+
+            .sidebar-overlay.open {
+                display: block;
+            }
+
+            /* Touch-friendly elements */
+            .student-action-btn {
+                width: 32px;
+                height: 32px;
+                opacity: 1 !important; /* Always visible on mobile */
+            }
+
+            .student-actions {
+                opacity: 1 !important; /* Always visible on mobile */
+            }
+
+            .close-btn {
+                font-size: 28px;
+                padding: 5px;
+            }
+
+            /* Classroom features */
+            .lavagna {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+
+            .porta {
+                font-size: 10px;
+                padding: 6px 8px;
+                left: -40px;
+            }
+
+            /* Form adjustments */
+            .form-group label {
+                font-size: 14px;
+            }
+
+            .form-group input,
+            .form-group select {
+                padding: 12px;
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+
+            /* History items */
+            .history-item {
+                padding: 12px;
+            }
+
+            .history-actions {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .history-actions .btn {
+                width: 100%;
+            }
+
+            /* Rule items */
+            .rule-item {
+                flex-direction: column;
+                gap: 5px;
+                align-items: flex-start;
+            }
+
+            .rule-type {
+                font-size: 12px;
+            }
+        }
+
+        /* Extra small devices */
+        @media (max-width: 480px) {
+            .classroom-grid {
+                transform: scale(0.75);
+            }
+
+            .desk {
+                width: 45px;
+                height: 35px;
+                font-size: 9px;
+            }
+
+            .btn {
+                font-size: 12px;
+                padding: 8px 10px;
+            }
+
+            .mobile-title {
+                font-size: 16px;
+            }
+        }
+
+        /* Landscape orientation for mobile */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .classroom-container {
+                padding-top: 10px;
+            }
+
+            .toolbar {
+                position: relative;
+                top: 0;
+            }
+
+            .classroom-grid {
+                transform: scale(0.7);
+            }
+        }
+
+        /* Hide mobile elements on desktop */
+        @media (min-width: 769px) {
+            .mobile-header,
+            .sidebar-overlay {
+                display: none !important;
             }
         }
 
@@ -611,6 +876,18 @@
     </style>
 </head>
 <body>
+    <!-- Mobile Header -->
+    <div class="mobile-header">
+        <button class="btn mobile-menu-btn" onclick="toggleSidebar()">
+            ☰
+        </button>
+        <h1 class="mobile-title" id="mobileClassName">Classe 3B</h1>
+        <div style="width: 40px;"></div> <!-- Spacer for centering -->
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
@@ -657,45 +934,56 @@
         <main class="main-content">
             <div class="toolbar">
                 <div class="toolbar-left">
-                    <button class="btn btn-secondary mobile-menu-btn" onclick="toggleSidebar()" style="display: none;">
-                        ☰ Menu
-                    </button>
                     <button class="btn btn-primary" onclick="showStudentModal()">
-                        + Aggiungi Studente
+                        + Studente
                     </button>
                     <button class="btn btn-primary" onclick="showRulesModal()">
-                        ⚙️ Configura Regole
+                        ⚙️ Regole
                     </button>
                     <button class="btn btn-primary" onclick="showClassroomModal()">
-                        📐 Configura Aula
+                        📐 Aula
                     </button>
                     <button class="btn btn-success" onclick="generateSeating()">
-                        🎲 Genera Disposizione
+                        🎲 Genera
                     </button>
                     <button class="btn btn-secondary" onclick="showHistoryModal()">
                         📅 Storico
                     </button>
                 </div>
                 <div>
+                    <button class="btn btn-secondary" onclick="printSeating()">
+                        🖨️
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportToExcel()">
+                        📊
+                    </button>
                     <button class="btn btn-secondary" onclick="saveConfiguration()">
-                        💾 Salva
+                        💾
                     </button>
                     <button class="btn btn-secondary" onclick="loadConfiguration()">
-                        📁 Carica
+                        📁
                     </button>
                     <button class="btn btn-secondary" onclick="resetSeating()">
-                        🔄 Reset
+                        🔄
                     </button>
                 </div>
             </div>
 
             <div class="classroom-container">
+                <div class="print-only print-header">
+                    <h1 id="printClassName">Disposizione Posti</h1>
+                    <p id="printDate"></p>
+                    <p id="printInfo"></p>
+                </div>
                 <div class="classroom-wrapper">
                     <div class="classroom-feature lavagna">LAVAGNA / LIM</div>
                     <div class="classroom-feature porta">PORTA</div>
                     <div class="classroom-grid" id="classroomGrid">
                         <!-- Desks will be generated here -->
                     </div>
+                </div>
+                <div class="print-only print-student-list" id="printStudentList">
+                    <!-- Student list for printing will be generated here -->
                 </div>
             </div>
         </main>
@@ -1110,6 +1398,21 @@
             }
             
             updateStats();
+            updateMobileTitle();
+            
+            // Touch support for mobile
+            addTouchSupport();
+        }
+
+        // Add touch support for drag and drop on mobile
+        function addTouchSupport() {
+            if ('ontouchstart' in window) {
+                document.addEventListener('touchmove', (e) => {
+                    if (e.target.classList.contains('student-card')) {
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+            }
         }
 
         // Save to localStorage
@@ -1987,6 +2290,29 @@
             }
         }
 
+        // Mobile Functions
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('open');
+        }
+
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.remove('open');
+            overlay.classList.remove('open');
+        }
+
+        // Update mobile title when class name changes
+        function updateMobileTitle() {
+            const mobileTitle = document.getElementById('mobileClassName');
+            if (mobileTitle) {
+                mobileTitle.textContent = currentClassName.replace('Studenti ', '');
+            }
+        }
+
         // Edit Class Name
         function editClassName() {
             const currentName = currentClassName.replace('Studenti ', '');
@@ -1995,7 +2321,9 @@
             if (newName && newName.trim()) {
                 currentClassName = newName.trim();
                 document.getElementById('className').textContent = `Studenti ${currentClassName}`;
+                updateMobileTitle();
                 showToast(`Nome classe aggiornato: ${currentClassName}`, 'success');
+                saveToLocalStorage();
             }
         }
 
@@ -2143,12 +2471,182 @@
         // Initialize app on load
         window.addEventListener('DOMContentLoaded', initApp);
 
-        // Close modals on outside click
-        window.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal')) {
-                e.target.classList.remove('active');
+        // Print Seating
+        function printSeating() {
+            // Prepare print header
+            document.getElementById('printClassName').textContent = `Disposizione Posti - ${currentClassName}`;
+            document.getElementById('printDate').textContent = `Data: ${new Date().toLocaleDateString('it-IT')}`;
+            
+            const assignedCount = classroom.desks.filter(d => d.student).length;
+            const arrangementName = {
+                'grid': 'Griglia Tradizionale',
+                'horseshoe': 'Ferro di Cavallo',
+                'groups': 'Isole di Lavoro'
+            }[classroom.arrangement || 'grid'];
+            
+            document.getElementById('printInfo').textContent = 
+                `Disposizione: ${arrangementName} | Studenti posizionati: ${assignedCount}/${students.length}`;
+            
+            // Create student list for printing
+            const printList = document.getElementById('printStudentList');
+            printList.innerHTML = '<h2>Elenco Studenti e Posizioni</h2>';
+            
+            // Sort students by position
+            const positionedStudents = [];
+            const unpositionedStudents = [];
+            
+            students.forEach(student => {
+                const desk = classroom.desks.find(d => d.student === student.id);
+                if (desk) {
+                    positionedStudents.push({
+                        student,
+                        position: `Fila ${desk.row + 1}, Posto ${desk.col + 1}`
+                    });
+                } else {
+                    unpositionedStudents.push(student);
+                }
+            });
+            
+            // Add positioned students
+            positionedStudents.sort((a, b) => a.student.name.localeCompare(b.student.name));
+            positionedStudents.forEach(({student, position}) => {
+                const tags = [
+                    ...student.tags.personalità,
+                    ...student.tags.apprendimento,
+                    ...student.tags.comportamento
+                ].filter(t => t).join(', ');
+                
+                printList.innerHTML += `
+                    <div class="print-student-item">
+                        <span><strong>${student.name}</strong>${tags ? ` (${tags})` : ''}</span>
+                        <span>${position}</span>
+                    </div>
+                `;
+            });
+            
+            // Add unpositioned students
+            if (unpositionedStudents.length > 0) {
+                printList.innerHTML += '<h3 style="margin-top: 20px;">Studenti non posizionati:</h3>';
+                unpositionedStudents.forEach(student => {
+                    const tags = [
+                        ...student.tags.personalità,
+                        ...student.tags.apprendimento,
+                        ...student.tags.comportamento
+                    ].filter(t => t).join(', ');
+                    
+                    printList.innerHTML += `
+                        <div class="print-student-item">
+                            <span><strong>${student.name}</strong>${tags ? ` (${tags})` : ''}</span>
+                            <span>-</span>
+                        </div>
+                    `;
+                });
             }
-        });
+            
+            // Trigger print
+            window.print();
+        }
+
+        // Export to Excel
+        function exportToExcel() {
+            // Create data array for Excel
+            const excelData = [];
+            
+            // Header row
+            excelData.push([
+                'Nome Studente',
+                'Fila',
+                'Posto',
+                'Tags Personalità',
+                'Tags Apprendimento',
+                'Tags Comportamento',
+                'Posizione Descrittiva'
+            ]);
+            
+            // Student data
+            students.forEach(student => {
+                const desk = classroom.desks.find(d => d.student === student.id);
+                
+                excelData.push([
+                    student.name,
+                    desk ? desk.row + 1 : '-',
+                    desk ? desk.col + 1 : '-',
+                    student.tags.personalità.join(', '),
+                    student.tags.apprendimento.join(', '),
+                    student.tags.comportamento.join(', '),
+                    desk ? `Fila ${desk.row + 1}, Posto ${desk.col + 1}` : 'Non assegnato'
+                ]);
+            });
+            
+            // Add metadata
+            excelData.push([]);
+            excelData.push(['Informazioni Classe']);
+            excelData.push(['Classe:', currentClassName]);
+            excelData.push(['Data esportazione:', new Date().toLocaleDateString('it-IT')]);
+            excelData.push(['Disposizione:', {
+                'grid': 'Griglia Tradizionale',
+                'horseshoe': 'Ferro di Cavallo',
+                'groups': 'Isole di Lavoro'
+            }[classroom.arrangement || 'grid']]);
+            excelData.push(['Totale studenti:', students.length]);
+            excelData.push(['Studenti posizionati:', classroom.desks.filter(d => d.student).length]);
+            
+            // Create visual map of classroom
+            excelData.push([]);
+            excelData.push(['Mappa Visuale Aula']);
+            excelData.push([]);
+            
+            // Add column headers for visual map
+            const mapHeader = [''];
+            for (let col = 0; col < classroom.cols; col++) {
+                mapHeader.push(`Colonna ${col + 1}`);
+            }
+            excelData.push(mapHeader);
+            
+            // Add visual map rows
+            for (let row = 0; row < classroom.rows; row++) {
+                const mapRow = [`Fila ${row + 1}`];
+                for (let col = 0; col < classroom.cols; col++) {
+                    const desk = classroom.desks.find(d => d.row === row && d.col === col);
+                    if (desk && desk.student) {
+                        const student = students.find(s => s.id === desk.student);
+                        mapRow.push(student ? student.name : 'Occupato');
+                    } else {
+                        mapRow.push('Vuoto');
+                    }
+                }
+                excelData.push(mapRow);
+            }
+            
+            // Convert to CSV format
+            const csvContent = excelData.map(row => 
+                row.map(cell => {
+                    // Escape quotes and wrap in quotes if contains comma
+                    const cellStr = String(cell || '');
+                    if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+                        return '"' + cellStr.replace(/"/g, '""') + '"';
+                    }
+                    return cellStr;
+                }).join(',')
+            ).join('\n');
+            
+            // Add BOM for Excel to recognize UTF-8
+            const BOM = '\uFEFF';
+            const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+            
+            // Create download link
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `disposizione_${currentClassName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showToast('Esportazione Excel completata!', 'success');
+        }
     </script>
 </body>
 </html>
