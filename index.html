@@ -295,9 +295,18 @@
             background: #bbdefb;
         }
         
-        .desk.occupied.dragging {
-            opacity: 0.5;
-            cursor: grabbing;
+        .desk-student-label {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: move;
+            user-select: none;
+        }
+        
+        .desk-student-label:hover {
+            font-weight: bold;
         }
 
         .desk.drag-over {
@@ -906,7 +915,7 @@
                     <img src="https://raw.githubusercontent.com/AnanassoMalvagio/gestioneclasse/main/logo.png" 
                          alt="MALEmatica Logo" 
                          style="width: 80px; height: 80px; border-radius: 50%; background: #2c3e50; padding: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);"
-                         title="MALEmatica">
+                         title="MALEmaticApp">
                     <div style="color: #ff4444; font-weight: bold; margin-top: 5px; font-size: 14px; text-shadow: 0 0 10px rgba(255,68,68,0.5);">MALEmatica</div>
                 </div>
                 <h2 id="className">Studenti Classe 3B</h2>
@@ -1737,12 +1746,7 @@
             
             if (props.innerHTML) desk.appendChild(props);
             
-            // Make desks draggable when occupied
-            desk.draggable = false; // Will be set to true when occupied
-            
             // Drag and Drop Events
-            desk.addEventListener('dragstart', handleDragStart);
-            desk.addEventListener('dragend', handleDragEnd);
             desk.addEventListener('dragover', handleDragOver);
             desk.addEventListener('drop', handleDrop);
             desk.addEventListener('dragleave', handleDragLeave);
@@ -1841,36 +1845,36 @@
         let draggedFromDesk = null;
 
         function handleDragStart(e) {
-            // Check if dragging from student list or from a desk
-            if (e.target.classList.contains('student-card')) {
-                draggedStudent = e.target;
-                draggedFromDesk = null;
-            } else if (e.target.classList.contains('desk') && e.target.classList.contains('occupied')) {
-                const studentId = classroom.desks.find(d => 
-                    d.row === parseInt(e.target.dataset.row) && 
-                    d.col === parseInt(e.target.dataset.col)
-                )?.student;
-                
-                if (studentId) {
-                    draggedStudent = document.querySelector(`[data-student-id="${studentId}"]`);
-                    draggedFromDesk = e.target;
-                }
-            }
+            // Dragging from student list
+            draggedStudent = e.target;
+            draggedFromDesk = null;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
             
-            if (draggedStudent) {
-                e.target.classList.add('dragging');
-                e.dataTransfer.effectAllowed = 'move';
-                
-                // Prevent dragging if clicking on action buttons
-                if (e.target.closest('.student-actions')) {
-                    e.preventDefault();
-                    return false;
-                }
+            // Prevent dragging if clicking on action buttons
+            if (e.target.closest('.student-actions')) {
+                e.preventDefault();
+                return false;
             }
         }
 
         function handleDragEnd(e) {
             e.target.classList.remove('dragging');
+        }
+
+        // Handle dragging from desks
+        function handleDeskDragStart(e) {
+            const studentId = e.target.dataset.studentId;
+            draggedStudent = document.querySelector(`[data-student-id="${studentId}"]`);
+            draggedFromDesk = e.target.closest('.desk');
+            
+            e.target.style.opacity = '0.5';
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', studentId);
+        }
+
+        function handleDeskDragEnd(e) {
+            e.target.style.opacity = '';
             draggedStudent = null;
             draggedFromDesk = null;
         }
@@ -1893,7 +1897,7 @@
             const desk = e.currentTarget;
             const row = parseInt(desk.dataset.row);
             const col = parseInt(desk.dataset.col);
-            const studentId = draggedStudent.dataset.studentId;
+            const studentId = draggedStudent.dataset.studentId || e.dataTransfer.getData('text/plain');
             const student = students.find(s => s.id === studentId);
 
             if (student) {
@@ -1906,20 +1910,14 @@
                     if (d.student === studentId) {
                         const oldDesk = document.getElementById(`desk-${d.row}-${d.col}`);
                         oldDesk.classList.remove('occupied');
-                        oldDesk.textContent = '';
+                        const label = oldDesk.querySelector('.desk-student-label');
+                        if (label) label.remove();
                         d.student = null;
-                        
-                        // Re-add properties
-                        const props = oldDesk.querySelector('.desk-properties');
-                        if (props) {
-                            oldDesk.innerHTML = '';
-                            oldDesk.appendChild(props);
-                        }
                     }
                 });
 
                 // If dragging from a desk to another occupied desk, swap students
-                if (draggedFromDesk && previousOccupant) {
+                if (draggedFromDesk && previousOccupant && previousOccupant !== studentId) {
                     const fromRow = parseInt(draggedFromDesk.dataset.row);
                     const fromCol = parseInt(draggedFromDesk.dataset.col);
                     const fromDesk = classroom.desks.find(d => d.row === fromRow && d.col === fromCol);
@@ -1927,16 +1925,18 @@
                     // Place previous occupant in the source desk
                     const previousStudent = students.find(s => s.id === previousOccupant);
                     if (previousStudent && fromDesk) {
-                        fromDesk.student = previousOccupant;
-                        draggedFromDesk.classList.add('occupied');
-                        draggedFromDesk.textContent = previousStudent.name.split(' ')[0];
+                        assignStudentToDesk(previousStudent, fromDesk);
                     }
+                } else if (previousOccupant) {
+                    // If dropping from list to occupied desk, remove the previous occupant
+                    const prevDesk = document.getElementById(`desk-${row}-${col}`);
+                    prevDesk.classList.remove('occupied');
+                    const label = prevDesk.querySelector('.desk-student-label');
+                    if (label) label.remove();
                 }
 
                 // Assign to new desk
-                targetDeskData.student = studentId;
-                desk.classList.add('occupied');
-                desk.textContent = student.name.split(' ')[0];
+                assignStudentToDesk(student, targetDeskData);
 
                 showToast(`${student.name} spostato`, 'success');
                 updateStats();
@@ -2319,8 +2319,23 @@
             desk.student = student.id;
             const deskElement = document.getElementById(`desk-${desk.row}-${desk.col}`);
             deskElement.classList.add('occupied');
-            deskElement.textContent = student.name.split(' ')[0];
-            deskElement.draggable = true; // Make the desk draggable
+            
+            // Create a draggable inner element for the student name
+            const studentLabel = document.createElement('div');
+            studentLabel.className = 'desk-student-label';
+            studentLabel.textContent = student.name.split(' ')[0];
+            studentLabel.draggable = true;
+            studentLabel.dataset.studentId = student.id;
+            
+            // Add drag events to the label
+            studentLabel.addEventListener('dragstart', handleDeskDragStart);
+            studentLabel.addEventListener('dragend', handleDeskDragEnd);
+            
+            // Clear desk content and add label
+            deskElement.innerHTML = '';
+            const props = deskElement.querySelector('.desk-properties');
+            if (props) deskElement.appendChild(props);
+            deskElement.appendChild(studentLabel);
         }
 
         // Reset Seating
@@ -2329,14 +2344,10 @@
                 desk.student = null;
                 const deskElement = document.getElementById(`desk-${desk.row}-${desk.col}`);
                 deskElement.classList.remove('occupied');
-                deskElement.textContent = '';
                 
-                // Re-add properties
-                const props = deskElement.querySelector('.desk-properties');
-                if (props) {
-                    deskElement.innerHTML = '';
-                    deskElement.appendChild(props);
-                }
+                // Remove student label
+                const label = deskElement.querySelector('.desk-student-label');
+                if (label) label.remove();
             });
             updateStats();
             if (showToastMessage) {
@@ -2635,4 +2646,3 @@
     </script>
 </body>
 </html>
-
