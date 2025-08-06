@@ -749,6 +749,236 @@
             }
         }
 
+        /* Search and Filter Styles */
+        .search-filter-section {
+            padding: 10px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e1e8ed;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .search-container {
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 35px 10px 12px;
+            border: 1px solid #e1e8ed;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .clear-search-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .clear-search-btn:hover {
+            background: #c0392b;
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .filter-container {
+            margin-bottom: 10px;
+        }
+
+        .filter-toggle-btn {
+            width: 100%;
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #e1e8ed;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .filter-toggle-btn:hover {
+            background: #f8f9fa;
+            border-color: #3498db;
+        }
+
+        .filter-toggle-btn.active {
+            background: #e3f2fd;
+            border-color: #3498db;
+        }
+
+        #filterIcon {
+            transition: transform 0.2s ease;
+            font-size: 10px;
+        }
+
+        #filterIcon.rotated {
+            transform: rotate(180deg);
+        }
+
+        #activeFiltersCount {
+            margin-left: auto;
+            background: #3498db;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            display: none;
+        }
+
+        #activeFiltersCount.show {
+            display: inline-block;
+        }
+
+        .filters-panel {
+            margin-top: 10px;
+            padding: 15px;
+            background: white;
+            border: 1px solid #e1e8ed;
+            border-radius: 6px;
+            animation: slideDown 0.2s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .filter-group {
+            margin-bottom: 15px;
+        }
+
+        .filter-group:last-child {
+            margin-bottom: 10px;
+        }
+
+        .filter-group label {
+            display: block;
+            font-weight: 600;
+            color: #34495e;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .filter-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            font-size: 13px;
+        }
+
+        .filter-checkbox input[type="checkbox"] {
+            margin-right: 6px;
+            cursor: pointer;
+        }
+
+        .filter-checkbox:hover {
+            color: #3498db;
+        }
+
+        .filter-checkbox .indicator {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .filter-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #e1e8ed;
+        }
+
+        .filter-actions .btn {
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+
+        .filtered-info {
+            padding: 8px 10px;
+            background: #e3f2fd;
+            color: #1976d2;
+            font-size: 13px;
+            text-align: center;
+            border-radius: 4px;
+            margin: 0 10px 10px 10px;
+        }
+
+        /* Highlight for search results */
+        .student-card.hidden {
+            display: none;
+        }
+
+        .student-card.highlight .student-name {
+            background: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        /* Tag filter style */
+        .tag-filter {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 12px;
+            background: #f8f9fa;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tag-filter:hover {
+            background: #e3f2fd;
+        }
+
+        .tag-filter input[type="checkbox"] {
+            margin-right: 4px;
+        }
+
+        .tag-filter.personalita { background: #fff3e0; }
+        .tag-filter.apprendimento { background: #f3e5f5; }
+        .tag-filter.comportamento { background: #fce4ec; }
+
         /* Stats Panel */
         .stats-panel {
             padding: 15px;
@@ -1007,6 +1237,73 @@
                 <button class="btn btn-secondary" onclick="editClassName()" style="margin-top: 10px; width: 100%; background: rgba(255,255,255,0.2); color: white; font-size: 12px;">
                     ✏️ Modifica Nome Classe
                 </button>
+            </div>
+            <!-- Search and Filter Section -->
+            <div class="search-filter-section">
+                <div class="search-container">
+                    <input type="text" 
+                           id="studentSearchInput" 
+                           class="search-input" 
+                           placeholder="🔍 Cerca studente per nome..."
+                           oninput="filterStudents()">
+                    <button class="clear-search-btn" 
+                            id="clearSearchBtn" 
+                            onclick="clearSearch()" 
+                            style="display: none;">
+                        ✕
+                    </button>
+                </div>
+                <div class="filter-container">
+                    <button class="filter-toggle-btn" onclick="toggleFilters()">
+                        <span id="filterIcon">▼</span> Filtri <span id="activeFiltersCount"></span>
+                    </button>
+                    <div class="filters-panel" id="filtersPanel" style="display: none;">
+                        <div class="filter-group">
+                            <label>Rendimento:</label>
+                            <div class="filter-options">
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" value="alto" onchange="filterStudents()">
+                                    <span class="indicator performance-alto">⭐ Alto</span>
+                                </label>
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" value="medio" onchange="filterStudents()">
+                                    <span class="indicator performance-medio">➖ Medio</span>
+                                </label>
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" value="basso" onchange="filterStudents()">
+                                    <span class="indicator performance-basso">⚠️ Basso</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="filter-group">
+                            <label>Tags:</label>
+                            <div class="filter-options" id="tagFilters">
+                                <!-- Tag filters will be dynamically generated -->
+                            </div>
+                        </div>
+                        <div class="filter-group">
+                            <label>Stato:</label>
+                            <div class="filter-options">
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" value="assigned" onchange="filterStudents()">
+                                    <span>✓ Assegnato</span>
+                                </label>
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" value="unassigned" onchange="filterStudents()">
+                                    <span>✗ Non assegnato</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="filter-actions">
+                            <button class="btn btn-secondary" onclick="clearAllFilters()">
+                                Rimuovi Filtri
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="filtered-info" id="filteredInfo" style="display: none;">
+                Mostrando <span id="filteredCount">0</span> di <span id="totalCount">0</span> studenti
             </div>
             <div class="student-list" id="studentList">
                 <!-- Student cards will be inserted here -->
@@ -1347,6 +1644,205 @@
 
         // Student relations (to track relations between students)
         let studentRelations = [];
+        
+        // Filter state
+        let activeFilters = {
+            search: '',
+            performance: [],
+            tags: [],
+            status: []
+        };
+
+        // Search and Filter Functions
+        function filterStudents() {
+            const searchTerm = document.getElementById('studentSearchInput').value.toLowerCase();
+            const performanceFilters = Array.from(document.querySelectorAll('.filter-options input[type="checkbox"][value="alto"], .filter-options input[type="checkbox"][value="medio"], .filter-options input[type="checkbox"][value="basso"]'))
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+            const statusFilters = Array.from(document.querySelectorAll('.filter-options input[type="checkbox"][value="assigned"], .filter-options input[type="checkbox"][value="unassigned"]'))
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+            const tagFilters = Array.from(document.querySelectorAll('.tag-filter input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+
+            // Update active filters
+            activeFilters = {
+                search: searchTerm,
+                performance: performanceFilters,
+                tags: tagFilters,
+                status: statusFilters
+            };
+
+            // Show/hide clear button
+            document.getElementById('clearSearchBtn').style.display = searchTerm ? 'flex' : 'none';
+
+            // Filter student cards
+            const studentCards = document.querySelectorAll('.student-card');
+            let visibleCount = 0;
+
+            studentCards.forEach(card => {
+                const studentId = card.dataset.studentId;
+                const student = students.find(s => s.id === studentId);
+                
+                if (!student) return;
+
+                let shouldShow = true;
+
+                // Search filter
+                if (searchTerm && !student.name.toLowerCase().includes(searchTerm)) {
+                    shouldShow = false;
+                }
+
+                // Performance filter
+                if (performanceFilters.length > 0 && !performanceFilters.includes(student.performance)) {
+                    shouldShow = false;
+                }
+
+                // Tag filter
+                if (tagFilters.length > 0) {
+                    const studentTags = [
+                        ...student.tags.personalità,
+                        ...student.tags.apprendimento,
+                        ...student.tags.comportamento
+                    ];
+                    const hasMatchingTag = tagFilters.some(tag => studentTags.includes(tag));
+                    if (!hasMatchingTag) {
+                        shouldShow = false;
+                    }
+                }
+
+                // Status filter
+                if (statusFilters.length > 0) {
+                    const isAssigned = classroom.desks.some(d => d.student === student.id);
+                    if (statusFilters.includes('assigned') && !isAssigned) {
+                        shouldShow = false;
+                    }
+                    if (statusFilters.includes('unassigned') && isAssigned) {
+                        shouldShow = false;
+                    }
+                }
+
+                // Apply visibility
+                if (shouldShow) {
+                    card.classList.remove('hidden');
+                    visibleCount++;
+                    
+                    // Highlight search term
+                    if (searchTerm) {
+                        card.classList.add('highlight');
+                    } else {
+                        card.classList.remove('highlight');
+                    }
+                } else {
+                    card.classList.add('hidden');
+                    card.classList.remove('highlight');
+                }
+            });
+
+            // Update filtered info
+            updateFilteredInfo(visibleCount, students.length);
+            updateActiveFiltersCount();
+        }
+
+        function clearSearch() {
+            document.getElementById('studentSearchInput').value = '';
+            filterStudents();
+        }
+
+        function toggleFilters() {
+            const filtersPanel = document.getElementById('filtersPanel');
+            const filterIcon = document.getElementById('filterIcon');
+            const filterToggleBtn = document.querySelector('.filter-toggle-btn');
+            
+            if (filtersPanel.style.display === 'none') {
+                filtersPanel.style.display = 'block';
+                filterIcon.classList.add('rotated');
+                filterToggleBtn.classList.add('active');
+                updateTagFilters();
+            } else {
+                filtersPanel.style.display = 'none';
+                filterIcon.classList.remove('rotated');
+                filterToggleBtn.classList.remove('active');
+            }
+        }
+
+        function updateTagFilters() {
+            const tagFiltersContainer = document.getElementById('tagFilters');
+            tagFiltersContainer.innerHTML = '';
+
+            // Collect all unique tags
+            const allTags = new Map();
+            
+            students.forEach(student => {
+                student.tags.personalità.forEach(tag => {
+                    if (!allTags.has(tag)) allTags.set(tag, 'personalita');
+                });
+                student.tags.apprendimento.forEach(tag => {
+                    if (!allTags.has(tag)) allTags.set(tag, 'apprendimento');
+                });
+                student.tags.comportamento.forEach(tag => {
+                    if (!allTags.has(tag)) allTags.set(tag, 'comportamento');
+                });
+            });
+
+            // Create tag filters
+            allTags.forEach((type, tag) => {
+                const tagFilter = document.createElement('label');
+                tagFilter.className = `tag-filter ${type}`;
+                tagFilter.innerHTML = `
+                    <input type="checkbox" value="${tag}" onchange="filterStudents()">
+                    ${tag}
+                `;
+                tagFiltersContainer.appendChild(tagFilter);
+            });
+        }
+
+        function clearAllFilters() {
+            // Clear all checkboxes
+            document.querySelectorAll('.filters-panel input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+            
+            // Clear search
+            document.getElementById('studentSearchInput').value = '';
+            
+            // Apply filters
+            filterStudents();
+            
+            // Hide filters panel
+            toggleFilters();
+        }
+
+        function updateFilteredInfo(visible, total) {
+            const filteredInfo = document.getElementById('filteredInfo');
+            const filteredCount = document.getElementById('filteredCount');
+            const totalCount = document.getElementById('totalCount');
+            
+            if (visible < total) {
+                filteredInfo.style.display = 'block';
+                filteredCount.textContent = visible;
+                totalCount.textContent = total;
+            } else {
+                filteredInfo.style.display = 'none';
+            }
+        }
+
+        function updateActiveFiltersCount() {
+            const activeFiltersCount = document.getElementById('activeFiltersCount');
+            let count = 0;
+            
+            if (activeFilters.search) count++;
+            count += activeFilters.performance.length;
+            count += activeFilters.tags.length;
+            count += activeFilters.status.length;
+            
+            if (count > 0) {
+                activeFiltersCount.textContent = count;
+                activeFiltersCount.classList.add('show');
+            } else {
+                activeFiltersCount.classList.remove('show');
+            }
+        }
 
         // Photo handling
         function handlePhotoUpload(event) {
@@ -2096,6 +2592,7 @@
             });
 
             updateStats();
+            updateFilteredInfo(students.length, students.length); // Show all students initially
         }
 
         // Drag and Drop Handlers
