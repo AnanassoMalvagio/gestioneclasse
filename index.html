@@ -1155,7 +1155,9 @@
         .toast {
             position: fixed;
             bottom: 20px;
-            right: 20px;
+            right
+
+            : 20px;
             background: #2c3e50;
             color: white;
             padding: 15px 20px;
@@ -2274,7 +2276,6 @@
                 historyList.appendChild(historyItem);
             });
         }
-
         // Load seating from history
         function loadSeatingFromHistory(index) {
             if (index >= 0 && index < seatingHistory.length) {
@@ -2519,13 +2520,125 @@
                         comportamento: ['chiacchierone']
                     },
                     relations: []
+                },
+                {
+                    id: 'std4',
+                    name: 'Antonio Moliterni',
+                    photo: '',
+                    performance: 'alto',
+                    tags: {
+                        personalità: ['leader_positivo'],
+                        apprendimento: [],
+                        comportamento: []
+                    },
+                    relations: []
+                },
+                {
+                    id: 'std5',
+                    name: 'Miriam Conte',
+                    photo: '',
+                    performance: 'medio',
+                    tags: {
+                        personalità: ['timido'],
+                        apprendimento: [],
+                        comportamento: []
+                    },
+                    relations: []
+                },
+                {
+                    id: 'std6',
+                    name: 'Paolo Neri',
+                    photo: '',
+                    performance: 'basso',
+                    tags: {
+                        personalità: [],
+                        apprendimento: ['BES'],
+                        comportamento: ['distratto']
+                    },
+                    relations: []
+                },
+                {
+                    id: 'std7',
+                    name: 'Anna Ferrari',
+                    photo: '',
+                    performance: 'alto',
+                    tags: {
+                        personalità: ['collaborativa'],
+                        apprendimento: [],
+                        comportamento: []
+                    },
+                    relations: []
+                },
+                {
+                    id: 'std8',
+                    name: 'Giuseppe Romano',
+                    photo: '',
+                    performance: 'medio',
+                    tags: {
+                        personalità: [],
+                        apprendimento: [],
+                        comportamento: ['chiacchierone']
+                    },
+                    relations: []
+                },
+                {
+                    id: 'std9',
+                    name: 'Francesca Russo',
+                    photo: '',
+                    performance: 'alto',
+                    tags: {
+                        personalità: ['studioso'],
+                        apprendimento: [],
+                        comportamento: []
+                    },
+                    relations: []
+                },
+                {
+                    id: 'std10',
+                    name: 'Marco Esposito',
+                    photo: '',
+                    performance: 'basso',
+                    tags: {
+                        personalità: [],
+                        apprendimento: [],
+                        comportamento: ['distratto', 'chiacchierone']
+                    },
+                    relations: [{
+                        studentId: 'std8',
+                        type: 'negative',
+                        description: 'Da evitare insieme'
+                    }]
+                },
+                {
+                    id: 'std11',
+                    name: 'Elena Colombo',
+                    photo: '',
+                    performance: 'medio',
+                    tags: {
+                        personalità: ['estroverso'],
+                        apprendimento: [],
+                        comportamento: []
+                    },
+                    relations: []
+                },
+                {
+                    id: 'std12',
+                    name: 'Davide Martini',
+                    photo: '',
+                    performance: 'alto',
+                    tags: {
+                        personalità: ['leader_positivo'],
+                        apprendimento: [],
+                        comportamento: []
+                    },
+                    relations: []
                 }
             ];
 
             students = sampleStudents;
             renderStudentList();
             
-            showToast('App pronta! Aggiungi i tuoi studenti con il pulsante "+ Aggiungi Studente"', 'success');
+            showToast('App pronta con 12 studenti di esempio! Prova a generare la disposizione.', 'success');
         }
 
         // Render Student List
@@ -2922,14 +3035,14 @@
             showToast(`Configurazione aggiornata: ${currentClassName} - ${arrangementName}`, 'success');
             saveToLocalStorage();
         }
-
-        // Enhanced Generate Seating with Relations and Performance
+        // FUNZIONE CORRETTA PER GENERARE LA DISPOSIZIONE SENZA DUPLICATI
         function generateSeating() {
             showToast('Generazione disposizione intelligente...', 'success');
             
             resetSeating(false);
 
             let availableStudents = [...students];
+            let placedStudents = new Set(); // Track placed students to avoid duplicates
             
             // Apply POSIZIONA rules first (DSA/BES in front)
             const specialNeedsStudents = availableStudents.filter(s => 
@@ -2937,82 +3050,113 @@
             );
 
             specialNeedsStudents.forEach(student => {
+                if (placedStudents.has(student.id)) return;
+                
                 for (let row = 0; row < Math.min(2, classroom.rows); row++) {
                     for (let col = 0; col < classroom.cols; col++) {
                         const desk = classroom.desks.find(d => d.row === row && d.col === col && !d.student);
                         if (desk) {
                             assignStudentToDesk(student, desk);
-                            availableStudents = availableStudents.filter(s => s.id !== student.id);
+                            placedStudents.add(student.id);
                             break;
                         }
                     }
+                    if (placedStudents.has(student.id)) break;
                 }
             });
+            
+            // Remove placed students from available list
+            availableStudents = availableStudents.filter(s => !placedStudents.has(s.id));
 
             // Apply RELAZIONI rules
             const hasRelationsRule = rules.preferential.find(r => r.type === 'RELAZIONI');
             if (hasRelationsRule) {
-                applyRelationRules(availableStudents);
+                applyRelationRules(availableStudents, placedStudents);
             }
+            
+            // Update available students after relations
+            availableStudents = availableStudents.filter(s => !placedStudents.has(s.id));
 
             // Apply RENDIMENTO rules
             const performanceRule = rules.preferential.find(r => r.type === 'RENDIMENTO');
             if (performanceRule) {
-                applyPerformanceRules(availableStudents, performanceRule);
+                applyPerformanceRules(availableStudents, performanceRule, placedStudents);
             }
+            
+            // Update available students after performance rules
+            availableStudents = availableStudents.filter(s => !placedStudents.has(s.id));
 
             // Handle remaining placement rules
             const chatterboxes = availableStudents.filter(s => s.tags.comportamento.includes('chiacchierone'));
             
             chatterboxes.forEach(student => {
+                if (placedStudents.has(student.id)) return;
+                
                 const desk = findBestDeskForChatterbox(student);
                 if (desk) {
                     assignStudentToDesk(student, desk);
-                    availableStudents = availableStudents.filter(s => s.id !== student.id);
+                    placedStudents.add(student.id);
                 }
             });
+            
+            // Update available students
+            availableStudents = availableStudents.filter(s => !placedStudents.has(s.id));
 
             // Place remaining students
             const leadersAndTimid = separateByTags(availableStudents);
             
             leadersAndTimid.leaders.forEach(leader => {
+                if (placedStudents.has(leader.id)) return;
+                
                 const desk = findAvailableDesk();
                 if (desk) {
                     assignStudentToDesk(leader, desk);
-                    availableStudents = availableStudents.filter(s => s.id !== leader.id);
+                    placedStudents.add(leader.id);
                     
-                    const timidStudent = leadersAndTimid.timid.find(s => availableStudents.includes(s));
+                    const timidStudent = leadersAndTimid.timid.find(s => 
+                        !placedStudents.has(s.id) && availableStudents.includes(s)
+                    );
                     if (timidStudent) {
                         const nearbyDesk = findNearbyDesk(desk);
                         if (nearbyDesk) {
                             assignStudentToDesk(timidStudent, nearbyDesk);
-                            availableStudents = availableStudents.filter(s => s.id !== timidStudent.id);
+                            placedStudents.add(timidStudent.id);
                         }
                     }
                 }
             });
+            
+            // Update available students one more time
+            availableStudents = availableStudents.filter(s => !placedStudents.has(s.id));
 
+            // Place any remaining students
             availableStudents.forEach(student => {
+                if (placedStudents.has(student.id)) return;
+                
                 const desk = findAvailableDesk();
                 if (desk) {
                     assignStudentToDesk(student, desk);
+                    placedStudents.add(student.id);
                 }
             });
 
             saveSeatingToHistory();
             
-            showToast('Disposizione generata e salvata nello storico!', 'success');
+            const placedCount = placedStudents.size;
+            const totalCount = students.length;
+            showToast(`Disposizione generata: ${placedCount}/${totalCount} studenti posizionati!`, 'success');
             updateStats();
         }
 
         // Apply relation-based rules
-        function applyRelationRules(availableStudents) {
+        function applyRelationRules(availableStudents, placedStudents) {
             students.forEach(student => {
                 if (!student.relations || student.relations.length === 0) return;
+                if (placedStudents.has(student.id)) return; // Skip if already placed
                 
                 student.relations.forEach(relation => {
                     const otherStudent = students.find(s => s.id === relation.studentId);
-                    if (!otherStudent) return;
+                    if (!otherStudent || placedStudents.has(otherStudent.id)) return;
                     
                     const studentPlaced = classroom.desks.some(d => d.student === student.id);
                     const otherPlaced = classroom.desks.some(d => d.student === otherStudent.id);
@@ -3024,7 +3168,7 @@
                             const nearbyDesk = findNearbyDesk(studentDesk);
                             if (nearbyDesk) {
                                 assignStudentToDesk(otherStudent, nearbyDesk);
-                                availableStudents = availableStudents.filter(s => s.id !== otherStudent.id);
+                                placedStudents.add(otherStudent.id);
                             }
                         }
                     } else if (relation.type === 'negative') {
@@ -3034,7 +3178,7 @@
                             const farDesk = findFarDesk(studentDesk);
                             if (farDesk) {
                                 assignStudentToDesk(otherStudent, farDesk);
-                                availableStudents = availableStudents.filter(s => s.id !== otherStudent.id);
+                                placedStudents.add(otherStudent.id);
                             }
                         }
                     }
@@ -3043,19 +3187,19 @@
         }
 
         // Apply performance-based rules
-        function applyPerformanceRules(availableStudents, rule) {
+        function applyPerformanceRules(availableStudents, rule, placedStudents) {
             const method = rule.method || 'mixed';
             
-            const highPerformers = availableStudents.filter(s => s.performance === 'alto');
-            const mediumPerformers = availableStudents.filter(s => s.performance === 'medio');
-            const lowPerformers = availableStudents.filter(s => s.performance === 'basso');
+            const highPerformers = availableStudents.filter(s => s.performance === 'alto' && !placedStudents.has(s.id));
+            const mediumPerformers = availableStudents.filter(s => s.performance === 'medio' && !placedStudents.has(s.id));
+            const lowPerformers = availableStudents.filter(s => s.performance === 'basso' && !placedStudents.has(s.id));
             
             if (method === 'front_high') {
                 // Place high performers in front
-                placeStudentsInZone(highPerformers, 'front', availableStudents);
+                placeStudentsInZone(highPerformers, 'front', availableStudents, placedStudents);
             } else if (method === 'front_low') {
                 // Place low performers in front for more attention
-                placeStudentsInZone(lowPerformers, 'front', availableStudents);
+                placeStudentsInZone(lowPerformers, 'front', availableStudents, placedStudents);
             } else if (method === 'mixed') {
                 // Mix different performance levels
                 const allByPerformance = [...highPerformers, ...mediumPerformers, ...lowPerformers];
@@ -3063,10 +3207,10 @@
                 
                 classroom.desks.forEach(desk => {
                     if (!desk.student && index < allByPerformance.length) {
-                        const student = allByPerformance[index % allByPerformance.length];
-                        if (availableStudents.includes(student)) {
+                        const student = allByPerformance[index];
+                        if (student && !placedStudents.has(student.id)) {
                             assignStudentToDesk(student, desk);
-                            availableStudents = availableStudents.filter(s => s.id !== student.id);
+                            placedStudents.add(student.id);
                             index++;
                         }
                     }
@@ -3075,9 +3219,9 @@
         }
 
         // Place students in specific zone
-        function placeStudentsInZone(studentList, zone, availableStudents) {
+        function placeStudentsInZone(studentList, zone, availableStudents, placedStudents) {
             studentList.forEach(student => {
-                if (!availableStudents.includes(student)) return;
+                if (!availableStudents.includes(student) || placedStudents.has(student.id)) return;
                 
                 let desk = null;
                 if (zone === 'front') {
@@ -3092,7 +3236,7 @@
                 
                 if (desk) {
                     assignStudentToDesk(student, desk);
-                    availableStudents = availableStudents.filter(s => s.id !== student.id);
+                    placedStudents.add(student.id);
                 }
             });
         }
