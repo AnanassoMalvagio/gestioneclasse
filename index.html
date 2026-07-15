@@ -2295,9 +2295,7 @@
         function initApp() {
             // Sincronizza con il registro se esiste
             syncWithRegistry();
-    
-            loadFromLocalStorage();
-            createClassroomGrid();
+
             loadFromLocalStorage();
             createClassroomGrid();
             
@@ -2640,20 +2638,17 @@
         groupSize = 6;
         numGroups = Math.ceil(totalDesks / 6);
     } else {
-        // Modalità adattiva
+        // Modalità adattiva: groupSize basato su studenti, numGroups basato su totalDesks
         if (studentCount <= 12) {
             groupSize = 3;
-            numGroups = 4;
         } else if (studentCount <= 20) {
             groupSize = 4;
-            numGroups = 5;
         } else if (studentCount <= 25) {
             groupSize = 5;
-            numGroups = 5;
         } else {
             groupSize = 6;
-            numGroups = 5;
         }
+        numGroups = Math.ceil(totalDesks / groupSize);
     }
     
     // Calcola layout della griglia
@@ -3139,7 +3134,13 @@
         function showClassroomModal() {
             document.getElementById('classroomModal').classList.add('active');
             document.getElementById('classNameInput').value = currentClassName.replace('Studenti ', '').replace('Classe ', '');
+            document.getElementById('classRows').value = classroom.rows;
+            document.getElementById('classCols').value = classroom.cols;
+            document.getElementById('deskArrangement').value = classroom.arrangement || 'grid';
+            document.getElementById('boardPosition').value = classroom.boardPosition || 'top';
+            document.getElementById('doorPosition').value = classroom.doorPosition || 'left';
             updateTotalSeatsPreview();
+            updateArrangementPreview();
         }
 
         function closeModal(modalId) {
