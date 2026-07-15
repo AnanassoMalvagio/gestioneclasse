@@ -1211,123 +1211,135 @@
         }
         /* Stili specifici per la stampa */
 @media print {
+    @page {
+        size: A4 landscape;
+        margin: 10mm;
+    }
+
     /* Nascondi elementi non necessari */
     .sidebar,
     .mobile-header,
     .sidebar-overlay,
     .toolbar,
-    .btn,
-    .modal {
+    .modal,
+    .toast,
+    .desk-properties,
+    .student-actions {
         display: none !important;
     }
-    
-    /* Reset del container principale */
+
+    html, body {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
     .app-container {
         display: block;
         height: auto;
     }
-    
+
     .main-content {
         padding: 0;
         width: 100%;
     }
-    
-    /* Ottimizza la visualizzazione dell'aula */
+
     .classroom-container {
         padding: 0;
         overflow: visible;
         display: block;
+        height: auto;
     }
-    
+
+    /* Wrapper occupa tutta la pagina, con spazio per le etichette */
     .classroom-wrapper {
-        padding: 40px 10px 10px 10px;
+        padding: 50px 20px 25px 70px;
         box-shadow: none;
-        border: 1px solid #ccc;
-        max-width: 100%;
-        margin: 0 auto;
+        border: none;
+        width: 100%;
+        margin: 0;
         position: relative;
+        page-break-inside: avoid;
     }
-    
-    /* Ridimensiona la griglia */
+
+    /* Griglia si espande a tutta larghezza disponibile */
     .classroom-grid {
-        transform: scale(0.75) !important;
-        transform-origin: top center;
+        transform: none !important;
         gap: 8px !important;
-        justify-content: center;
+        width: 100%;
         page-break-inside: avoid;
-        margin-top: 10px;
     }
-    
-    /* Dimensioni ridotte dei banchi */
+
+    /* Banchi a larghezza automatica (1fr funziona perché il grid usa repeat(n, 1fr)) */
     .desk {
-        width: 70px !important;
-        height: 50px !important;
-        font-size: 11px !important;
+        width: auto !important;
+        min-height: 60px !important;
+        height: auto !important;
+        font-size: 11pt !important;
+        padding: 4px !important;
         page-break-inside: avoid;
+        border: 1.5px solid #aaa !important;
     }
-    
+
+    .desk.occupied {
+        background: #e3f2fd !important;
+        border-color: #2196f3 !important;
+    }
+
     .desk-student-photo {
-        width: 20px !important;
-        height: 20px !important;
-        font-size: 9px !important;
+        width: 26px !important;
+        height: 26px !important;
+        font-size: 11px !important;
+        flex-shrink: 0 !important;
     }
-    
+
+    /* Nomi studenti: minimo 12pt */
     .desk-student-name {
-        font-size: 9px !important;
-        font-weight: bold;
+        font-size: 12pt !important;
+        font-weight: bold !important;
+        line-height: 1.2 !important;
     }
-    
-    /* Riposiziona e ridimensiona etichette */
+
+    /* LAVAGNA e PORTA: visibili e ben leggibili */
     .classroom-feature {
-        font-size: 12px !important;
-        font-weight: bold;
-        padding: 4px 8px !important;
+        font-size: 13pt !important;
+        font-weight: bold !important;
+        padding: 5px 14px !important;
+        border-radius: 4px !important;
     }
-    
+
     .lavagna {
-        position: absolute !important;
-        top: 5px !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        width: 40% !important;
+        display: block !important;
+        background: #2c3e50 !important;
+        color: white !important;
     }
-    
+
     .porta {
-        display: none !important; /* Nascondi la porta per risparmiare spazio */
+        display: block !important;
+        background: #e74c3c !important;
+        color: white !important;
     }
-    
-    /* Aggiungi informazioni classe in alto */
+
+    /* Intestazione stampa con nome classe */
     .classroom-wrapper::before {
         content: attr(data-class-info);
         display: block;
         text-align: center;
-        font-size: 14px;
+        font-size: 14pt;
         font-weight: bold;
-        margin-bottom: 10px;
-        padding-bottom: 5px;
-        border-bottom: 1px solid #333;
+        padding-bottom: 6px;
+        border-bottom: 2px solid #333;
         position: absolute;
-        top: 10px;
+        top: 12px;
         left: 0;
         right: 0;
     }
-    
-    /* Orientamento orizzontale per massimizzare lo spazio */
-    @page {
-        size: A4 landscape;
-        margin: 0.5cm;
-    }
-    
-    /* Assicura che i colori siano visibili */
+
+    /* Forza i colori in stampa */
     * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         color-adjust: exact !important;
-    }
-    
-    /* Nascondi gli indicatori per risparmiare spazio */
-    .desk-properties {
-        display: none !important;
     }
 }
     </style>
@@ -1351,10 +1363,10 @@
             <div class="sidebar-header">
                 <div style="text-align: center; margin-bottom: 15px;">
                     <img src="https://raw.githubusercontent.com/AnanassoMalvagio/gestioneclasse/main/logo.png" 
-                         alt="MALEmatica Logo" 
+                         alt="AxioClass Logo"
                          style="width: 80px; height: 80px; border-radius: 50%; background: #2c3e50; padding: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);"
-                         title="MALEmatica">
-                    <div style="color: #ff4444; font-weight: bold; margin-top: 5px; font-size: 14px; text-shadow: 0 0 10px rgba(255,68,68,0.5);">MALEmaticApp</div>
+                         title="AxioClass">
+                    <div style="color: #ff4444; font-weight: bold; margin-top: 5px; font-size: 14px; text-shadow: 0 0 10px rgba(255,68,68,0.5);">AxioClass</div>
                 </div>
                 <h2 id="className">Studenti Classe 3B</h2>
                 <button class="btn btn-secondary" onclick="editClassName()" style="margin-top: 10px; width: 100%; background: rgba(255,255,255,0.2); color: white; font-size: 12px;">
