@@ -2045,30 +2045,42 @@
             return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
         }
 
-        // Add relation
-        function addRelation() {
+        // Add relation — preType e preStudentId per pre-popolare in modalità modifica
+        function addRelation(preType = '', preStudentId = '') {
             const relationsList = document.getElementById('relationsList');
             const relationId = 'rel' + Date.now();
-            
+            const currentStudentId = document.getElementById('studentId').value;
+
+            // Escludi lo studente corrente dalla lista
+            const otherStudents = students.filter(s => s.id !== currentStudentId);
+
+            const typeOptions = [
+                { value: 'positive', label: 'Lavorano bene insieme' },
+                { value: 'negative', label: 'Da evitare insieme' },
+                { value: 'siblings', label: 'Sono fratelli' },
+                { value: 'support', label: 'Necessita supporto da' },
+            ];
+
             const relationItem = document.createElement('div');
             relationItem.className = 'relation-item';
             relationItem.id = relationId;
             relationItem.innerHTML = `
-                <select class="relation-student-select" data-relation-id="${relationId}">
-                    <option value="">Seleziona studente...</option>
-                    ${students.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
-                </select>
                 <select class="relation-type-select" data-relation-id="${relationId}">
-                    <option value="positive">Lavorano bene insieme</option>
-                    <option value="negative">Da evitare insieme</option>
-                    <option value="siblings">Sono fratelli</option>
-                    <option value="support">Necessita supporto da</option>
+                    ${typeOptions.map(o =>
+                        `<option value="${o.value}"${preType === o.value ? ' selected' : ''}>${o.label}</option>`
+                    ).join('')}
                 </select>
-                <button class="relation-remove-btn" onclick="removeRelation('${relationId}')">
+                <select class="relation-student-select" data-relation-id="${relationId}">
+                    <option value="">con...</option>
+                    ${otherStudents.map(s =>
+                        `<option value="${s.id}"${s.id === preStudentId ? ' selected' : ''}>${s.name}</option>`
+                    ).join('')}
+                </select>
+                <button type="button" class="relation-remove-btn" onclick="removeRelation('${relationId}')">
                     Rimuovi
                 </button>
             `;
-            
+
             relationsList.appendChild(relationItem);
         }
 
@@ -3023,15 +3035,12 @@
                 document.getElementById('photoPreview').dataset.photoData = student.photo;
             }
             
-            // Load relations
+            // Load relations (pre-popola tipo e studente)
             const relationsList = document.getElementById('relationsList');
             relationsList.innerHTML = '';
             if (student.relations && student.relations.length > 0) {
                 student.relations.forEach(rel => {
-                    addRelation();
-                    const lastRelation = relationsList.lastElementChild;
-                    lastRelation.querySelector('.relation-student-select').value = rel.studentId;
-                    lastRelation.querySelector('.relation-type-select').value = rel.type;
+                    addRelation(rel.type, rel.studentId);
                 });
             }
         }
@@ -3075,8 +3084,8 @@
         // Save Student (Add or Edit)
         function saveStudent(e) {
             e.preventDefault();
-            
-            const studentId = document.getElementById('studentId').value;
+
+            const formStudentId = document.getElementById('studentId').value;
             const name = document.getElementById('studentName').value;
             const performance = document.getElementById('studentPerformance').value;
             const personalita = document.getElementById('tagPersonalita').value.split(',').filter(t => t.trim());
@@ -3084,13 +3093,12 @@
             const comportamento = document.getElementById('tagComportamento').value.split(',').filter(t => t.trim());
             const photo = document.getElementById('photoPreview').dataset.photoData || '';
 
-            // Collect relations
+            // Raccoglie le relazioni definite nel form
             const relations = [];
-            const relationItems = document.querySelectorAll('.relation-item');
-            relationItems.forEach(item => {
+            document.querySelectorAll('.relation-item').forEach(item => {
                 const studentSelect = item.querySelector('.relation-student-select');
                 const typeSelect = item.querySelector('.relation-type-select');
-                if (studentSelect.value) {
+                if (studentSelect && studentSelect.value) {
                     relations.push({
                         studentId: studentSelect.value,
                         type: typeSelect.value,
@@ -3100,31 +3108,53 @@
             });
 
             const studentData = {
-                name: name,
-                photo: photo,
-                performance: performance,
+                name,
+                photo,
+                performance,
                 tags: {
                     personalità: personalita.map(t => t.trim()),
                     apprendimento: apprendimento.map(t => t.trim()),
                     comportamento: comportamento.map(t => t.trim())
                 },
-                relations: relations
+                relations
             };
 
-            if (studentId) {
-                const index = students.findIndex(s => s.id === studentId);
+            // Determina l'ID definitivo dello studente (esistente o nuovo)
+            let savedId;
+            if (formStudentId) {
+                savedId = formStudentId;
+                const index = students.findIndex(s => s.id === savedId);
                 if (index !== -1) {
                     students[index] = { ...students[index], ...studentData };
                     showToast(`${name} modificato con successo`, 'success');
                 }
             } else {
-                const newStudent = {
-                    id: 'std' + Date.now(),
-                    ...studentData
-                };
-                students.push(newStudent);
+                savedId = 'std' + Date.now();
+                students.push({ id: savedId, ...studentData });
                 showToast(`${name} aggiunto con successo`, 'success');
             }
+
+            // ── Relazioni bidirezionali ──────────────────────────────────
+            // 1. Rimuovi la reverse-relation di questo studente da tutti gli altri
+            //    (verrà ri-aggiunta solo per quelli ancora collegati)
+            students.forEach(s => {
+                if (s.id !== savedId && s.relations) {
+                    s.relations = s.relations.filter(r => r.studentId !== savedId);
+                }
+            });
+
+            // 2. Per ogni relazione salvata, aggiungi la reverse sull'altro studente
+            relations.forEach(rel => {
+                const other = students.find(s => s.id === rel.studentId);
+                if (!other) return;
+                if (!other.relations) other.relations = [];
+                other.relations.push({
+                    studentId: savedId,
+                    type: rel.type,
+                    description: rel.description
+                });
+            });
+            // ─────────────────────────────────────────────────────────────
 
             renderStudentList();
             closeModal('studentModal');
