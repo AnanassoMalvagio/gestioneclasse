@@ -1209,6 +1209,51 @@
             display: flex;
             gap: 10px;
         }
+        /* Report generazione */
+        .report-section-title {
+            font-weight: 600;
+            color: #34495e;
+            font-size: 13px;
+            margin: 12px 0 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .report-issue {
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .report-check {
+            padding: 6px 10px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        .report-check.ok  { background: #d4edda; color: #155724; }
+        .report-check.fail { background: #f8d7da; color: #721c24; }
+        .report-noissue {
+            color: #7f8c8d;
+            font-style: italic;
+            font-size: 13px;
+            padding: 4px 0;
+        }
+        .report-score {
+            margin-top: 14px;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-weight: bold;
+            text-align: center;
+            font-size: 15px;
+        }
+        .report-score.perfect { background: #d4edda; color: #155724; }
+        .report-score.partial { background: #fff3cd; color: #856404; }
+        .report-score.bad     { background: #f8d7da; color: #721c24; }
+        .report-checks-list   { max-height: 38vh; overflow-y: auto; }
+
         /* Stili specifici per la stampa */
 @media print {
     @page {
@@ -1744,6 +1789,21 @@
                     Puoi caricare una disposizione precedente o salvarla su file per conservarla permanentemente.
                 </p>
             </div>
+        </div>
+    </div>
+
+    <!-- Generation Report Modal -->
+    <div class="modal" id="generationReport">
+        <div class="modal-content" style="max-width:560px;">
+            <div class="modal-header">
+                <h3>📊 Rapporto Generazione</h3>
+                <button class="close-btn" onclick="closeModal('generationReport')">×</button>
+            </div>
+            <div class="report-section-title">Anomalie</div>
+            <div id="reportIssues"></div>
+            <div class="report-section-title">Relazioni e vincoli</div>
+            <div id="reportChecks" class="report-checks-list"></div>
+            <div id="reportScore" class="report-score"></div>
         </div>
     </div>
 
@@ -3314,8 +3374,6 @@ function updateDeskIndicators() {
         }
     });
 }
-        // FUNZIONE CORRETTA PER GENERARE LA DISPOSIZIONE SENZA DUPLICATI
-        // VERSIONE MIGLIORATA E FUNZIONANTE
 function generateSeating() {
     if (students.length === 0) {
         showToast('Aggiungi almeno uno studente prima di generare!', 'error');
@@ -3329,101 +3387,138 @@ function generateSeating() {
     showToast('Generazione disposizione intelligente...', 'success');
     resetSeating(false);
 
-    let studentsToPlace = [...students];
-    let desks = [...classroom.desks];
+    // Set condiviso: nessuno studente viene piazzato più di una volta
+    const placedStudents = new Set();
 
-    // Funzione per calcolare la distanza tra due banchi
-    const getDistance = (desk1, desk2) => Math.abs(desk1.row - desk2.row) + Math.abs(desk1.col - desk2.col);
+    // Lavoriamo direttamente su classroom.desks (riferimenti condivisi — nessuna copia)
+    const desks = classroom.desks;
 
-    // Funzione che calcola il "punteggio" di un banco per un certo studente
+    const getDistance = (d1, d2) => Math.abs(d1.row - d2.row) + Math.abs(d1.col - d2.col);
+
     function getDeskScore(student, desk) {
-        let score = 100; // Punteggio base
+        let score = 100;
 
-        // 1. Regole di POSIZIONE (es. DSA/BES davanti)
-        const positionRule = rules.preferential.find(r => r.type === 'POSIZIONA' && student.tags.apprendimento.some(tag => r.tags.includes(tag)));
-        if (positionRule && positionRule.zone === 'prima_fila' && desk.row > 1) {
-            score -= 200; // Forte penalità se non è nelle prime due file
-        }
+        // 1. POSIZIONE: DSA/BES obbligati in prima fila
+        const posRule = rules.preferential.find(r =>
+            r.type === 'POSIZIONA' &&
+            r.zone === 'prima_fila' &&
+            student.tags.apprendimento.some(tag => (r.tags || []).includes(tag))
+        );
+        if (posRule && desk.row > 1) score -= 200;
 
-        // 2. Regole di SEPARAZIONE (es. due chiacchieroni vicini)
+        // Banchi già occupati adiacenti al candidato
         const neighbors = desks.filter(d => d.student && getDistance(d, desk) <= 1);
-        for (const neighbor of neighbors) {
-            const neighborStudent = students.find(s => s.id === neighbor.student);
-            const separationRule = rules.preferential.find(r => r.type === 'SEPARA' && student.tags.comportamento.includes(r.tag) && neighborStudent.tags.comportamento.includes(r.tag));
-            if (separationRule) {
-                score -= 150; // Forte penalità se sono vicini
-            }
-        }
-        
-        // 3. Regole di AVVICINAMENTO (es. leader vicino a timido)
-        for (const neighbor of neighbors) {
-            const neighborStudent = students.find(s => s.id === neighbor.student);
-            const proximityRule = rules.preferential.find(r => r.type === 'AVVICINA' && 
-                ((student.tags.personalità.includes(r.tag1) && neighborStudent.tags.personalità.includes(r.tag2)) || 
-                 (student.tags.personalità.includes(r.tag2) && neighborStudent.tags.personalità.includes(r.tag1)))
+
+        // 2. SEPARAZIONE tag (es. chiacchieroni distanti)
+        for (const nb of neighbors) {
+            const ns = students.find(s => s.id === nb.student);
+            if (!ns) continue;
+            const sepRule = rules.preferential.find(r =>
+                r.type === 'SEPARA' &&
+                student.tags.comportamento.includes(r.tag) &&
+                ns.tags.comportamento.includes(r.tag)
             );
-            if (proximityRule) {
-                score += 50; // Bonus se sono vicini
+            if (sepRule) score -= 150;
+        }
+
+        // 3. AVVICINAMENTO tag (es. leader vicino a timido)
+        for (const nb of neighbors) {
+            const ns = students.find(s => s.id === nb.student);
+            if (!ns) continue;
+            const proxRule = rules.preferential.find(r =>
+                r.type === 'AVVICINA' &&
+                ((student.tags.personalità.includes(r.tag1) && ns.tags.personalità.includes(r.tag2)) ||
+                 (student.tags.personalità.includes(r.tag2) && ns.tags.personalità.includes(r.tag1)))
+            );
+            if (proxRule) score += 50;
+        }
+
+        // 4. RELAZIONI individuali (dati salvati dal selettore relazioni)
+        for (const rel of (student.relations || [])) {
+            const relDesk = desks.find(d => d.student === rel.studentId);
+            if (!relDesk) continue; // l'altro studente non è ancora piazzato
+
+            const dist = getDistance(relDesk, desk);
+
+            if (rel.type === 'positive' || rel.type === 'siblings' || rel.type === 'support') {
+                // Vogliamo vicini: bonus forte se adiacenti, penalità crescente con distanza
+                if (dist === 1) score += 180;
+                else score -= dist * 25;
+            } else if (rel.type === 'negative') {
+                // Vogliamo lontani: penalità forte se adiacenti, bonus moderato con distanza
+                if (dist <= 1) score -= 220;
+                else score += Math.min(dist * 15, 80);
             }
         }
 
-        return score + Math.random(); // Aggiungiamo un po' di casualità per non avere sempre lo stesso risultato
+        return score + Math.random() * 0.5; // piccola casualità per rompere i pareggi
     }
-    
-    // Ordina gli studenti per dare priorità a chi ha più "vincoli" (regole)
-    studentsToPlace.sort((a, b) => {
-        const constraintsA = (a.relations?.length || 0) + (a.tags.apprendimento.includes('DSA') || a.tags.apprendimento.includes('BES') ? 1 : 0);
-        const constraintsB = (b.relations?.length || 0) + (b.tags.apprendimento.includes('DSA') || b.tags.apprendimento.includes('BES') ? 1 : 0);
-        return constraintsB - constraintsA;
+
+    // Ordina: prima i più vincolati (relazioni + DSA/BES pesano di più)
+    const studentsToPlace = [...students].sort((a, b) => {
+        const ca = (a.relations?.length || 0) * 2 +
+                   (a.tags.apprendimento.includes('DSA') || a.tags.apprendimento.includes('BES') ? 3 : 0);
+        const cb = (b.relations?.length || 0) * 2 +
+                   (b.tags.apprendimento.includes('DSA') || b.tags.apprendimento.includes('BES') ? 3 : 0);
+        return cb - ca;
     });
 
-    // Per ogni studente, trova il banco migliore
-    studentsToPlace.forEach(student => {
-        const availableDesks = desks.filter(d => !d.student);
-        if (availableDesks.length === 0) return;
+    for (const student of studentsToPlace) {
+        // Guard anti-duplicati: salta se già piazzato (es. dati corrotti con ID duplicati)
+        if (placedStudents.has(student.id)) continue;
+
+        const available = desks.filter(d => !d.student);
+        if (available.length === 0) break;
 
         let bestDesk = null;
         let highestScore = -Infinity;
-
-        availableDesks.forEach(desk => {
-            const score = getDeskScore(student, desk);
-            if (score > highestScore) {
-                highestScore = score;
-                bestDesk = desk;
-            }
-        });
+        for (const desk of available) {
+            const s = getDeskScore(student, desk);
+            if (s > highestScore) { highestScore = s; bestDesk = desk; }
+        }
 
         if (bestDesk) {
             assignStudentToDesk(student, bestDesk);
+            placedStudents.add(student.id);
         }
-    });
+    }
 
     saveSeatingToHistory();
     updateStats();
+    showGenerationReport(placedStudents);
 }
 
 function assignStudentToDesk(student, desk) {
+    // Guard anti-duplicati nel modello: se questo studente è già su un altro banco, liberalo
+    classroom.desks.forEach(d => {
+        if (d.student === student.id && d !== desk) {
+            d.student = null;
+            const prev = document.getElementById(`desk-${d.row}-${d.col}`);
+            if (prev) {
+                prev.classList.remove('occupied');
+                const lbl = prev.querySelector('.desk-student-label');
+                if (lbl) lbl.remove();
+            }
+        }
+    });
+
     desk.student = student.id;
     const deskElement = document.getElementById(`desk-${desk.row}-${desk.col}`);
-    if (!deskElement) return; // Sicurezza
+    if (!deskElement) return;
 
-    // Rimuovi solo un eventuale studente precedente, senza cancellare le icone
     const oldLabel = deskElement.querySelector('.desk-student-label');
-    if (oldLabel) {
-        oldLabel.remove();
-    }
-    
+    if (oldLabel) oldLabel.remove();
+
     deskElement.classList.add('occupied');
-    
+
     const studentLabel = document.createElement('div');
     studentLabel.className = 'desk-student-label';
     studentLabel.draggable = true;
     studentLabel.dataset.studentId = student.id;
-    
-    // Aggiunge la foto o le iniziali
+
     const photoDiv = document.createElement('div');
     photoDiv.className = 'desk-student-photo';
-    
+
     if (student.photo) {
         const img = document.createElement('img');
         img.src = student.photo;
@@ -3432,20 +3527,145 @@ function assignStudentToDesk(student, desk) {
     } else {
         photoDiv.textContent = getInitials(student.name);
     }
-    
+
     const nameDiv = document.createElement('div');
     nameDiv.className = 'desk-student-name';
     nameDiv.textContent = student.name.split(' ')[0];
-    
+
     studentLabel.appendChild(photoDiv);
     studentLabel.appendChild(nameDiv);
-    
+
     studentLabel.addEventListener('dragstart', handleDeskDragStart);
     studentLabel.addEventListener('dragend', handleDeskDragEnd);
-    
+
     deskElement.appendChild(studentLabel);
-}           
-            
+}
+
+
+
+        function showGenerationReport(placedStudents) {
+            const issues  = [];
+            const checks  = [];
+            const getDistance = (d1, d2) => Math.abs(d1.row - d2.row) + Math.abs(d1.col - d2.col);
+
+            // ── 1. Anomalie: duplicati e studenti non piazzati ──────────────
+            const countById = {};
+            classroom.desks.forEach(d => {
+                if (d.student) countById[d.student] = (countById[d.student] || 0) + 1;
+            });
+            students.forEach(s => {
+                const n = countById[s.id] || 0;
+                if (n > 1) issues.push(`⚠️ ERRORE: ${s.name} posizionato ${n} volte`);
+            });
+            const notPlaced = students.filter(s => !placedStudents.has(s.id));
+            notPlaced.forEach(s => issues.push(`⚠️ ${s.name} non posizionato (banchi insufficienti)`));
+
+            if (issues.length === 0) {
+                checks.push({ ok: true, text: `Tutti e ${students.length} gli studenti posizionati, nessun duplicato` });
+            }
+
+            // ── 2. Relazioni individuali ─────────────────────────────────
+            const seenPairs = new Set();
+            students.forEach(student => {
+                (student.relations || []).forEach(rel => {
+                    const key = [student.id, rel.studentId].sort().join('|');
+                    if (seenPairs.has(key)) return;
+                    seenPairs.add(key);
+
+                    const other = students.find(s => s.id === rel.studentId);
+                    if (!other) return;
+
+                    const dA = classroom.desks.find(d => d.student === student.id);
+                    const dB = classroom.desks.find(d => d.student === rel.studentId);
+                    if (!dA || !dB) {
+                        checks.push({ ok: false, text: `${student.name} – ${other.name} (${rel.description || rel.type}): uno o entrambi non posizionati` });
+                        return;
+                    }
+
+                    const dist = getDistance(dA, dB);
+                    let ok, detail;
+
+                    if (rel.type === 'positive' || rel.type === 'siblings' || rel.type === 'support') {
+                        ok     = dist <= 1;
+                        detail = ok ? `banchi adiacenti (distanza ${dist})` : `distanza ${dist} banchi — troppo lontani`;
+                    } else if (rel.type === 'negative') {
+                        ok     = dist >= 2;
+                        detail = ok ? `tenuti separati (distanza ${dist})` : `distanza solo ${dist} banco — troppo vicini`;
+                    } else {
+                        ok     = true;
+                        detail = `distanza ${dist}`;
+                    }
+
+                    checks.push({ ok, text: `${student.name} – ${other.name} (${rel.description || rel.type}): ${detail}` });
+                });
+            });
+
+            // ── 3. Regola POSIZIONA: DSA/BES in prima fila ───────────────
+            const posRule = rules.preferential.find(r => r.type === 'POSIZIONA' && r.zone === 'prima_fila');
+            if (posRule) {
+                const tagged = students.filter(s => s.tags.apprendimento.some(t => (posRule.tags || []).includes(t)));
+                if (tagged.length > 0) {
+                    const label = (posRule.tags || []).join('/');
+                    const allFront = tagged.every(s => {
+                        const d = classroom.desks.find(dk => dk.student === s.id);
+                        return d && d.row <= 1;
+                    });
+                    checks.push({
+                        ok: allFront,
+                        text: allFront
+                            ? `Tutti gli studenti ${label} in prima o seconda fila`
+                            : `Alcuni studenti ${label} non in prima/seconda fila`
+                    });
+                }
+            }
+
+            // ── 4. Regola SEPARA: tag (es. chiacchieroni) ────────────────
+            const sepRule = rules.preferential.find(r => r.type === 'SEPARA');
+            if (sepRule) {
+                const tagged = students.filter(s => s.tags.comportamento.includes(sepRule.tag));
+                if (tagged.length >= 2) {
+                    const minDist = sepRule.minDistance || 2;
+                    let allSep = true;
+                    outer: for (let i = 0; i < tagged.length; i++) {
+                        for (let j = i + 1; j < tagged.length; j++) {
+                            const dA = classroom.desks.find(d => d.student === tagged[i].id);
+                            const dB = classroom.desks.find(d => d.student === tagged[j].id);
+                            if (!dA || !dB) continue;
+                            if (getDistance(dA, dB) < minDist) { allSep = false; break outer; }
+                        }
+                    }
+                    checks.push({
+                        ok: allSep,
+                        text: allSep
+                            ? `Studenti con tag "${sepRule.tag}" tenuti separati (min ${minDist} banchi)`
+                            : `Alcuni studenti con tag "${sepRule.tag}" troppo vicini`
+                    });
+                }
+            }
+
+            // ── Punteggio finale ─────────────────────────────────────────
+            const okCount    = checks.filter(c => c.ok).length;
+            const totalCount = checks.length;
+            const ratio      = totalCount > 0 ? okCount / totalCount : 1;
+
+            // Popola il modal
+            const issueEl  = document.getElementById('reportIssues');
+            const checkEl  = document.getElementById('reportChecks');
+            const scoreEl  = document.getElementById('reportScore');
+
+            issueEl.innerHTML = issues.length
+                ? issues.map(i => `<div class="report-issue">${i}</div>`).join('')
+                : '<div class="report-noissue">Nessuna anomalia rilevata</div>';
+
+            checkEl.innerHTML = checks.length
+                ? checks.map(c => `<div class="report-check ${c.ok ? 'ok' : 'fail'}">${c.ok ? '✅' : '❌'} ${c.text}</div>`).join('')
+                : '<div class="report-noissue">Nessun vincolo da verificare</div>';
+
+            scoreEl.textContent = `Vincoli rispettati: ${okCount} / ${totalCount}`;
+            scoreEl.className   = 'report-score ' + (ratio === 1 ? 'perfect' : ratio >= 0.6 ? 'partial' : 'bad');
+
+            document.getElementById('generationReport').classList.add('active');
+        }
 
         function resetSeating(showToastMessage = true) {
             classroom.desks.forEach(desk => {
